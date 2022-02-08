@@ -16,8 +16,8 @@ fluidPage(
                   fluidRow(downloadButton('dl_btn', 'Download'),
                            fileInput('ul_btn', NULL, accept = '.json', placeholder = 'Upload your dataset'))
                   ),
-           column(7, div("Dataset"), reactableOutput('dataset')),
-           column(3, div("cmd_log"), reactableOutput('cmd_log'))
+           column(6, div("Dataset"), reactableOutput('dataset')),
+           column(4, div("cmd_log"), reactableOutput('cmd_log'))
     )
   )
 )
