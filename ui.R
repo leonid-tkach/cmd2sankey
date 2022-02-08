@@ -18,6 +18,8 @@ fluidPage(
                   ),
            column(6, div("Dataset"), reactableOutput('dataset')),
            column(4, div("cmd_log"), reactableOutput('cmd_log'))
-    )
+    ),
+    column(2,
+           div("current_users"), reactableOutput('current_users'))
   )
 )

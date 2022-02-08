@@ -19,14 +19,49 @@ cmd_log <- reactiveVal(tibble(
   args = character()
 ))
 
+current_users <- reactiveVal(tibble(
+  u_gnm = character(), # user's generated unique name
+  u_ind = numeric() # index number of a known user (from dataset)
+))
+
 function(input, output, session) {
   command <- reactiveVal('')
   log_str <- reactiveVal('')
   
+  #=============================================================================
+  # controlling current users()
+  cu_gnm <- reactiveVal('') # current user's generated unique name
+  
+  session_init <- FALSE
+  
+  session$onSessionEnded(function() {
+    # browser()
+    current_users(isolate({
+      current_users() %>% filter(u_gnm != cu_gnm)
+    }))
+  })
+  
+  if (!session_init) {
+    # Seed username
+    cu_gnm <- paste0("User", round(runif(1, 10000, 99999)))
+    current_users(isolate(
+      current_users() %>% 
+        add_row(u_gnm = cu_gnm)
+    ))
+    session_init <- TRUE
+  }
+  
+  # controlling current users()
+  #=============================================================================
+  
   output$dataset <- renderReactable({
     reactable(dataset())
   })
-
+  
+  output$current_users <- renderReactable({
+    reactable(current_users())
+  })
+  
   output$cmd_log <- renderReactable({
     reactable(cmd_log())
   })
