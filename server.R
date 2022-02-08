@@ -8,9 +8,9 @@ dataset <- reactiveVal(tibble(
 
 commands <- reactiveVal(tribble(
   ~cmd, ~args,
-  "nu", c('u_nm'), # new user
-  "nc", c('c_nm'), # new country
-  "ns", c('s_nm') # new state
+  'nu', c('u_nm'), # new user
+  'nc', c('c_nm'), # new country
+  'ns', c('s_nm') # new state
 ))
 
 cmd_log <- reactiveVal(tibble(
@@ -31,6 +31,9 @@ function(input, output, session) {
   #=============================================================================
   # controlling current users()
   cu_gnm <- reactiveVal('') # current user's generated unique name
+  cu_ind <- reactiveVal(numeric()) # current user's indicator form current_users
+  
+  # browser()
   
   session_init <- FALSE
   
