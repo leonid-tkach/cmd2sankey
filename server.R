@@ -9,6 +9,8 @@ dataset <- reactiveVal(tibble(
 commands <- reactiveVal(tribble(
   ~cmd, ~args,
   'nu', c('u_nm'), # new user
+  'cu', c('u_ind'), # choose user (u_ind is not existing argument but 
+                    # user's indicator in dataset, one by one)
   'nc', c('c_nm'), # new country
   'ns', c('s_nm') # new state
 ))
@@ -85,6 +87,13 @@ function(input, output, session) {
       unlist()
     cmnd <- structure(class = cmnd_vec[1],
                       list(args = cmnd_vec[-1]))
+    cmd_log(isolate(
+      cmd_log() %>% 
+        add_row(cmd_ind = nrow(cmd_log()) + 1,
+                cmd = class(cmnd),
+                args = paste(cmnd$args, collapse = ' ')
+        )
+    ))
     run_command(cmnd)
   })
   
@@ -93,27 +102,22 @@ function(input, output, session) {
   }
   
   run_command.default <- function(cmnd) {
+    cmd_log(isolate(
+      head(cmd_log(), -1)
+    ))
     log_str(paste0('Command "', class(cmnd), '" is unknown!\n', log_str()))
   }
   
   run_command.nu <- function(cmnd) {
     # browser()
-    cur_cmd_ind = nrow(cmd_log()) + 1
     dataset(isolate(
       dataset() %>% 
-        add_row(cmd_ind = cur_cmd_ind,
+        add_row(cmd_ind = nrow(cmd_log()),
                 cmd = 'nu',
                 u_nm = cmnd$args[[1]]
         )
     ))
     
-    cmd_log(isolate(
-      cmd_log() %>% 
-        add_row(cmd_ind = cur_cmd_ind,
-                cmd = class(cmnd),
-                args = paste(cmnd$args, collapse = ' ')
-        )
-    ))
   }
   
 }
