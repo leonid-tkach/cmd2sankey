@@ -98,6 +98,13 @@ function(input, output, session) {
     cmnd <- structure(class = cmnd_vec[1],
                       list(args = cmnd_vec[-1]))
     # browser()
+    args_num <- length(commands()$args[commands()$cmd == class(cmnd)])
+    if (length(cmnd$args) < args_num) {
+      add_to_log_str(paste0('Command "', class(cmnd), '" has ',
+                            args_num, ' args, but you have only provided ',
+                            length(cmnd$args), ' args.'))
+      return()
+    }
     cmd_log(isolate(
       cmd_log() %>% 
         add_row(cmd_ind = nrow(cmd_log()) + 1,
