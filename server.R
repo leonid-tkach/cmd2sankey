@@ -60,7 +60,7 @@ function(input, output, session) {
   #=============================================================================
   
   output$dataset <- renderReactable({
-    reactable(dataset())
+    reactable(dataset() %>% arrange(desc(cmd_ind)))
   })
   
   output$current_users <- renderReactable({
@@ -68,7 +68,7 @@ function(input, output, session) {
   })
   
   output$cmd_log <- renderReactable({
-    reactable(cmd_log())
+    reactable(cmd_log() %>% arrange(desc(cmd_ind)))
   })
   
   output$log <- renderText({
@@ -80,8 +80,18 @@ function(input, output, session) {
     command(input$tmnl)
   })
   
+  delete_last_row_in_cmd_log <- function() {
+    cmd_log(isolate(
+      head(cmd_log(), -1)
+    ))
+  }
+  
+  add_to_log_str <- function(str_to_add) {
+    log_str(paste0(str_to_add, '\n', log_str()))
+  }
+  
   observeEvent(command(), {
-    log_str(paste0(command(), '\n',log_str()))
+    add_to_log_str(command())
     isolate(updateTextInput(session, 'tmnl', value = ''))
     cmnd_vec <- str_extract_all(command(), '(\\w+)') %>% 
       unlist()
@@ -99,16 +109,6 @@ function(input, output, session) {
   
   run_command <- function(cmnd) {
     UseMethod("run_command")
-  }
-  
-  delete_last_row_in_cmd_log <- function() {
-    cmd_log(isolate(
-      head(cmd_log(), -1)
-    ))
-  }
-  
-  add_to_log_str <- function(str_to_add) {
-    log_str(paste0(str_to_add, '\n', log_str()))
   }
   
   run_command.default <- function(cmnd) {
@@ -129,9 +129,13 @@ function(input, output, session) {
   
   run_command.cu <- function(cmnd) {
     # browser()
+    users_num <- nrow(dataset() %>% filter(cmd == 'nu'))
     current_users_nr <- current_users()
-    if (cmnd$args[[1]] > nrow(current_users_nr %>% filter(cmd == 'nu'))) {
-      
+    if (cmnd$args[[1]] > users_num) {
+      add_to_log_str(paste0('There is no user ', cmnd$args[[1]], 
+                            '! There are only ', users_num, ' users.'))
+      delete_last_row_in_cmd_log()
+      return()
     }
     current_users_nr$u_ind[current_users_nr$u_gnm == cu_gnm] <- cmnd$args[[1]]
     current_users(current_users_nr)
