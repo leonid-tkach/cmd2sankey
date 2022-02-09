@@ -97,6 +97,7 @@ function(input, output, session) {
       unlist()
     cmnd <- structure(class = cmnd_vec[1],
                       list(args = cmnd_vec[-1]))
+    # browser()
     cmd_log(isolate(
       cmd_log() %>% 
         add_row(cmd_ind = nrow(cmd_log()) + 1,
@@ -129,11 +130,21 @@ function(input, output, session) {
   
   run_command.cu <- function(cmnd) {
     # browser()
-    users_num <- nrow(dataset() %>% filter(cmd == 'nu'))
+    users_num <- dataset() %>% filter(cmd == 'nu') %>% nrow()
     current_users_nr <- current_users()
     if (cmnd$args[[1]] > users_num) {
       add_to_log_str(paste0('There is no user ', cmnd$args[[1]], 
                             '! There are only ', users_num, ' users.'))
+      delete_last_row_in_cmd_log()
+      return()
+    }
+    # browser()
+    if (current_users_nr %>% filter(u_ind == cmnd$args[[1]]) %>% nrow() > 0) {
+      if (current_users_nr$u_gnm[current_users_nr$u_ind == cmnd$args[[1]]] == cu_gnm) {
+        add_to_log_str(paste0('You  have already signed in as ', cmnd$args[[1]], '!'))
+      } else {
+        add_to_log_str(paste0('Somebody has already signed in as user ', cmnd$args[[1]], '!'))
+      }
       delete_last_row_in_cmd_log()
       return()
     }
