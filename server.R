@@ -86,12 +86,14 @@ function(input, output, session) {
     ))
   }
   
-  add_to_log_str <- function(str_to_add) {
-    log_str(paste0(str_to_add, '<br/>', log_str()))
+  add_to_log_str <- function(str_to_add, cmd_wrng) {
+    log_str(paste0(if_else(cmd_wrng == 'cmd', '> ', ''), 
+                   str_to_add, '<br/>', 
+                   log_str()))
   }
   
   observeEvent(command(), {
-    add_to_log_str(paste0('> ', command()))
+    add_to_log_str(command(), 'cmd')
     isolate(updateTextInput(session, 'tmnl', value = ''))
     cmnd_vec <- str_extract_all(command(), '(\\w+)') %>% 
       unlist()
@@ -102,7 +104,7 @@ function(input, output, session) {
     if (length(cmnd$args) < args_num) {
       add_to_log_str(paste0('Command "', class(cmnd), '" has ',
                             args_num, ' args, but you have only provided ',
-                            length(cmnd$args), ' args.'))
+                            length(cmnd$args), ' args.'), 'wrng')
       return()
     }
     cmd_log(isolate(
@@ -121,7 +123,8 @@ function(input, output, session) {
   
   run_command.default <- function(cmnd) {
     delete_last_row_in_cmd_log()
-    add_to_log_str(paste0('Command "', class(cmnd), '" is unknown!'))
+    add_to_log_str(paste0('Command "', class(cmnd), '" is unknown!'), 
+                   'wrng')
   }
   
   run_command.nu <- function(cmnd) {
@@ -141,16 +144,19 @@ function(input, output, session) {
     current_users_nr <- current_users()
     if (cmnd$args[[1]] > users_num) {
       add_to_log_str(paste0('There is no user ', cmnd$args[[1]], 
-                            '! There are only ', users_num, ' users.'))
+                            '! There are only ', users_num, ' users.'), 
+                     'wrng')
       delete_last_row_in_cmd_log()
       return()
     }
     # browser()
     if (current_users_nr %>% filter(u_ind == cmnd$args[[1]]) %>% nrow() > 0) {
       if (current_users_nr$u_gnm[current_users_nr$u_ind == cmnd$args[[1]]] == cu_gnm) {
-        add_to_log_str(paste0('You  have already signed in as ', cmnd$args[[1]], '!'))
+        add_to_log_str(paste0('You  have already signed in as ', cmnd$args[[1]], '!'), 
+                       'wrng')
       } else {
-        add_to_log_str(paste0('Somebody has already signed in as user ', cmnd$args[[1]], '!'))
+        add_to_log_str(paste0('Somebody has already signed in as user ', cmnd$args[[1]], '!'), 
+                       'wrng')
       }
       delete_last_row_in_cmd_log()
       return()
