@@ -140,28 +140,35 @@ function(input, output, session) {
   
   run_command.cu <- function(cmnd) {
     # browser()
+    cu_ind <- as.numeric(cmnd$args[[1]]) # chosen user's ind
+    if(is.na(cu_ind)) {
+      add_to_log_str(paste0(cmnd$args[[1]], ' is not numeric!'), 
+                     'wrng')
+      delete_last_row_in_cmd_log()
+      return()
+    }
     users_num <- dataset() %>% filter(cmd == 'nu') %>% nrow()
     current_users_nr <- current_users()
-    if (cmnd$args[[1]] > users_num) {
-      add_to_log_str(paste0('There is no user ', cmnd$args[[1]], 
+    if (cu_ind > users_num) {
+      add_to_log_str(paste0('There is no user ', cu_ind, 
                             '! There are only ', users_num, ' users.'), 
                      'wrng')
       delete_last_row_in_cmd_log()
       return()
     }
     # browser()
-    if (current_users_nr %>% filter(u_ind == cmnd$args[[1]]) %>% nrow() > 0) {
-      if (current_users_nr$u_gnm[current_users_nr$u_ind == cmnd$args[[1]]] == cu_gnm) {
-        add_to_log_str(paste0('You  have already signed in as ', cmnd$args[[1]], '!'), 
+    if (current_users_nr %>% filter(u_ind == cu_ind) %>% nrow() > 0) {
+      if (current_users_nr$u_gnm[current_users_nr$u_ind == cu_ind] == cu_gnm) {
+        add_to_log_str(paste0('You  have already signed in as ', cu_ind, '!'), 
                        'wrng')
       } else {
-        add_to_log_str(paste0('Somebody has already signed in as user ', cmnd$args[[1]], '!'), 
+        add_to_log_str(paste0('Somebody has already signed in as user ', cu_ind, '!'), 
                        'wrng')
       }
       delete_last_row_in_cmd_log()
       return()
     }
-    current_users_nr$u_ind[current_users_nr$u_gnm == cu_gnm] <- cmnd$args[[1]]
+    current_users_nr$u_ind[current_users_nr$u_gnm == cu_gnm] <- cu_ind
     current_users(current_users_nr)
   }
   
