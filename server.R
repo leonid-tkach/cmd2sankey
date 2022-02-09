@@ -71,8 +71,8 @@ function(input, output, session) {
     reactable(cmd_log() %>% arrange(desc(cmd_ind)))
   })
   
-  output$log <- renderText({
-    log_str()
+  output$log <- renderUI({
+    HTML(log_str())
   })
   
   observeEvent(list(input$keys, input$run), {
@@ -87,11 +87,11 @@ function(input, output, session) {
   }
   
   add_to_log_str <- function(str_to_add) {
-    log_str(paste0(str_to_add, '\n', log_str()))
+    log_str(paste0(str_to_add, '<br/>', log_str()))
   }
   
   observeEvent(command(), {
-    add_to_log_str(command())
+    add_to_log_str(paste0('> ', command()))
     isolate(updateTextInput(session, 'tmnl', value = ''))
     cmnd_vec <- str_extract_all(command(), '(\\w+)') %>% 
       unlist()

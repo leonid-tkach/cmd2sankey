@@ -12,7 +12,8 @@ fluidPage(
            column(2,
                   textInput('tmnl', 'Terminal'),
                   actionButton('run', 'Run'),
-                  verbatimTextOutput('log'),
+                  div(style = "max-height: 15vh; overflow-y: auto; font-size: 10px;",
+                      htmlOutput('log')),
                   fluidRow(downloadButton('dl_btn', 'Download'),
                            fileInput('ul_btn', NULL, accept = '.json', placeholder = 'Upload your dataset'))
                   ),
