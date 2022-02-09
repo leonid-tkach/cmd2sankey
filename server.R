@@ -107,9 +107,13 @@ function(input, output, session) {
     ))
   }
   
+  add_to_log_str <- function(str_to_add) {
+    log_str(paste0(str_to_add, '\n', log_str()))
+  }
+  
   run_command.default <- function(cmnd) {
     delete_last_row_in_cmd_log()
-    log_str(paste0('Command "', class(cmnd), '" is unknown!\n', log_str()))
+    add_to_log_str(paste0('Command "', class(cmnd), '" is unknown!'))
   }
   
   run_command.nu <- function(cmnd) {
@@ -126,6 +130,9 @@ function(input, output, session) {
   run_command.cu <- function(cmnd) {
     # browser()
     current_users_nr <- current_users()
+    if (cmnd$args[[1]] > nrow(current_users_nr %>% filter(cmd == 'nu'))) {
+      
+    }
     current_users_nr$u_ind[current_users_nr$u_gnm == cu_gnm] <- cmnd$args[[1]]
     current_users(current_users_nr)
   }
