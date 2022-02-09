@@ -101,10 +101,14 @@ function(input, output, session) {
     UseMethod("run_command")
   }
   
-  run_command.default <- function(cmnd) {
+  delete_last_row_in_cmd_log <- function() {
     cmd_log(isolate(
       head(cmd_log(), -1)
     ))
+  }
+  
+  run_command.default <- function(cmnd) {
+    delete_last_row_in_cmd_log()
     log_str(paste0('Command "', class(cmnd), '" is unknown!\n', log_str()))
   }
   
@@ -117,7 +121,13 @@ function(input, output, session) {
                 u_nm = cmnd$args[[1]]
         )
     ))
-    
+  }
+  
+  run_command.cu <- function(cmnd) {
+    # browser()
+    current_users_nr <- current_users()
+    current_users_nr$u_ind[current_users_nr$u_gnm == cu_gnm] <- cmnd$args[[1]]
+    current_users(current_users_nr)
   }
   
 }
