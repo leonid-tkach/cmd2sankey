@@ -1,37 +1,47 @@
-dataset <- reactiveVal(tibble(
-  cmd = character(), # nu (new user), nc (new country), ns (new state)
-  cmd_ind = numeric(), # command index (user runs commands one by one)
-  u_nm = character(),
-  c_nm = character(),
-  s_nm = character()
-))
+#===============================================================================
+# global variables
 
-commands <- reactiveVal(tribble(
-  ~cmd, ~args,
-  'nu', c('u_nm'), # new user
-  'cu', c('u_ind'), # choose user (u_ind is not existing argument but 
-                    # user's indicator in dataset, one by one)
-  'nc', c('c_nm'), # new country
-  'ns', c('s_nm') # new state
-))
+load('datasets.RData')
+# dataset <- reactiveVal(dataset_nr)
+# commands <- reactiveVal(commands_nr)
+# cmd_log <- reactiveVal(cmd_log_nr)
 
-cmd_log <- reactiveVal(tibble(
-  cmd_ind = numeric(),
-  cmd = character(),
-  args = character()
-))
+# dataset <- reactiveVal(tibble(
+#   cmd = character(), # nu (new user), nc (new country), ns (new state)
+#   cmd_ind = numeric(), # command index (user runs commands one by one)
+#   u_nm = character(),
+#   c_nm = character(),
+#   s_nm = character()
+# ))
+# 
+# commands <- reactiveVal(tribble(
+#   ~cmd, ~args,
+#   'nu', c('u_nm'), # new user
+#   'cu', c('u_ind'), # choose user (u_ind is not existing argument but
+#                     # user's indicator in dataset, one by one)
+#   'nc', c('c_nm'), # new country
+#   'ns', c('s_nm') # new state
+# ))
+# 
+# cmd_log <- reactiveVal(tibble(
+#   cmd_ind = numeric(),
+#   cmd = character(),
+#   args = character()
+# ))
 
 current_users <- reactiveVal(tibble(
   u_gnm = character(), # user's generated unique name
   u_ind = numeric() # index number of a known user (from dataset)
 ))
+# global variables
+#===============================================================================
 
 function(input, output, session) {
   command <- reactiveVal('')
   log_str <- reactiveVal('')
   
-  #=============================================================================
-  # controlling current users()
+#===============================================================================
+# supporting current users()
   cu_gnm <- reactiveVal('') # current user's generated unique name
   cu_ind <- reactiveVal(numeric()) # current user's indicator form current_users
   
@@ -44,6 +54,13 @@ function(input, output, session) {
     current_users(isolate({
       current_users() %>% filter(u_gnm != cu_gnm)
     }))
+    
+    # browser()
+    save(dataset, 
+         commands, 
+         cmd_log, 
+         file = 'datasets.RData',
+         envir = environment())
   })
   
   if (!session_init) {
@@ -55,10 +72,11 @@ function(input, output, session) {
     ))
     session_init <- TRUE
   }
+# supporting current users()
+#===============================================================================
   
-  # controlling current users()
-  #=============================================================================
-  
+#===============================================================================
+# supporting ui
   output$dataset <- renderReactable({
     reactable(dataset() %>% arrange(desc(cmd_ind)))
   })
@@ -79,7 +97,11 @@ function(input, output, session) {
     # browser()
     command(input$tmnl)
   })
-  
+# supporting ui
+#===============================================================================
+
+#===============================================================================
+# supporting run_command()
   delete_last_row_in_cmd_log <- function() {
     cmd_log(isolate(
       head(cmd_log(), -1)
@@ -171,5 +193,7 @@ function(input, output, session) {
     current_users_nr$u_ind[current_users_nr$u_gnm == cu_gnm] <- cu_ind
     current_users(current_users_nr)
   }
+# supporting run_command()
+#===============================================================================
   
 }
