@@ -161,7 +161,7 @@ function(input, output, session) {
   }
   
   run_command.cu <- function(cmnd) {
-    # browser()
+    delete_last_row_in_cmd_log() # we don't need to save cu, because the command is unundoable
     cu_ind <- as.numeric(cmnd$args[[1]]) # chosen user's ind
     if(is.na(cu_ind)) {
       add_to_log_str(paste0(cmnd$args[[1]], ' is not numeric!'), 
@@ -213,7 +213,7 @@ function(input, output, session) {
 #===============================================================================
 
 #===============================================================================
-# supporting undo_run_command()
+# supporting undo_command()
   undo_command <- function(cmnd) {
     UseMethod("run_command")
   }
@@ -226,7 +226,7 @@ function(input, output, session) {
   undo_command.cu <- function(cmd_ind) {
     # if_else ()
   }
-# supporting undo_run_command()
+# supporting undo_command()
 #===============================================================================
   
 }
