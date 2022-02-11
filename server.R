@@ -161,7 +161,6 @@ function(input, output, session) {
   }
   
   run_command.cu <- function(cmnd) {
-    delete_last_row_in_cmd_log() # we don't need to save cu, because the command is unundoable
     cu_ind <- as.numeric(cmnd$args[[1]]) # chosen user's ind
     if(is.na(cu_ind)) {
       add_to_log_str(paste0(cmnd$args[[1]], ' is not numeric!'), 
@@ -223,8 +222,13 @@ function(input, output, session) {
                    'wrng')
   }
   
-  undo_command.cu <- function(cmd_ind) {
-    # if_else ()
+  undo_command.nu <- function(cmd_ind) {
+    if (cmd_ind != nrow(cmd_log)) {
+      add_to_log_str(paste0(cmd_ind, ' is not the last command!'), 
+                     'wrng')
+      return()
+    }
+    
   }
 # supporting undo_command()
 #===============================================================================
