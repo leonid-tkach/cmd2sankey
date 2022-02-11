@@ -1,29 +1,29 @@
 #===============================================================================
 # global variables
 
-# load('datasets.RData')
-dataset <- reactiveVal(tibble(
-  cmd = character(), # nu (new user), nc (new country), ns (new state)
-  cmd_ind = numeric(), # command index (user runs commands one by one)
-  u_nm = character(),
-  c_nm = character(),
-  s_nm = character()
-))
-
-commands <- reactiveVal(tribble(
-  ~cmd, ~args,
-  'nu', c('u_nm'), # new user
-  'cu', c('u_ind'), # choose user (u_ind is not existing argument but
-                    # user's indicator in dataset, one by one)
-  'nc', c('c_nm'), # new country
-  'ns', c('s_nm') # new state
-))
-
-cmd_log <- reactiveVal(tibble(
-  cmd_ind = numeric(),
-  cmd = character(),
-  args = character()
-))
+load('datasets.RData')
+# dataset <- reactiveVal(tibble(
+#   cmd = character(), # nu (new user), nc (new country), ns (new state)
+#   cmd_ind = numeric(), # command index (user runs commands one by one)
+#   u_nm = character(),
+#   c_nm = character(),
+#   s_nm = character()
+# ))
+# 
+# commands <- reactiveVal(tribble(
+#   ~cmd, ~args,
+#   'nu', c('u_nm'), # new user
+#   'cu', c('u_ind'), # choose user (u_ind is not existing argument but
+#                     # user's indicator in dataset, one by one)
+#   'nc', c('c_nm'), # new country
+#   'ns', c('s_nm') # new state
+# ))
+# 
+# cmd_log <- reactiveVal(tibble(
+#   cmd_ind = numeric(),
+#   cmd = character(),
+#   args = character()
+# ))
 
 current_users <- reactiveVal(tibble(
   u_gnm = character(), # user's generated unique name
@@ -67,7 +67,8 @@ function(input, output, session) {
     cu_gnm <- paste0("User", round(runif(1, 10000, 99999)))
     current_users(isolate(
       current_users() %>% 
-        add_row(u_gnm = cu_gnm)
+        add_row(u_gnm = cu_gnm,
+                u_ind = 0)
     ))
     session_init <- TRUE
   }
@@ -179,6 +180,7 @@ function(input, output, session) {
     }
     # browser()
     if (current_users_nr %>% filter(u_ind == cu_ind) %>% nrow() > 0) {
+      # browser()
       if (current_users_nr$u_gnm[current_users_nr$u_ind == cu_ind] == cu_gnm) {
         add_to_log_str(paste0('You  have already signed in as ', cu_ind, '!'), 
                        'wrng')
