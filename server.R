@@ -171,28 +171,28 @@ function(input, output, session) {
     }
     users_num <- dataset() %>% filter(cmd == 'nu') %>% nrow()
     current_users_nr <- current_users()
-    if (cu_ind > users_num) {
-      add_to_log_str(paste0('There is no user ', cu_ind, 
-                            '! There are only ', users_num, ' users.'), 
-                     'wrng')
-      delete_last_row_in_cmd_log()
-      return()
-    }
-    # browser()
-    if (current_users_nr %>% filter(u_ind == cu_ind) %>% nrow() > 0) {
-      # browser()
-      if (current_users_nr$u_gnm[current_users_nr$u_ind == cu_ind] == cu_gnm) {
-        add_to_log_str(paste0('You  have already signed in as ', cu_ind, '!'), 
+    if (cu_ind != 0) { # if the user is not signing out
+      if (cu_ind > users_num) {
+        add_to_log_str(paste0('There is no user ', cu_ind, 
+                              '! There are only ', users_num, ' users.'), 
                        'wrng')
-      } else {
-        add_to_log_str(paste0('Somebody has already signed in as user ', cu_ind, '!'), 
-                       'wrng')
+        delete_last_row_in_cmd_log()
+        return()
       }
-      delete_last_row_in_cmd_log()
-      return()
+      # browser()
+      if (current_users_nr %>% filter(u_ind == cu_ind) %>% nrow() > 0) {
+        # browser()
+        if (current_users_nr$u_gnm[current_users_nr$u_ind == cu_ind] == cu_gnm) {
+          add_to_log_str(paste0('You  have already signed in as ', cu_ind, '!'), 
+                         'wrng')
+        } else {
+          add_to_log_str(paste0('Somebody has already signed in as user ', cu_ind, '!'), 
+                         'wrng')
+        }
+        delete_last_row_in_cmd_log()
+        return()
+      }
     }
-    current_users_nr$u_ind[current_users_nr$u_gnm == cu_gnm] <- cu_ind
-    current_users(current_users_nr)
     # browser()
     if (cu_ind == 1) {
       insertUI(
@@ -206,6 +206,8 @@ function(input, output, session) {
         selector = '#admin_console',
       )
     }
+    current_users_nr$u_ind[current_users_nr$u_gnm == cu_gnm] <- cu_ind
+    current_users(current_users_nr)
   }
 # supporting run_command()
 #===============================================================================
