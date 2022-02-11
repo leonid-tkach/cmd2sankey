@@ -180,7 +180,7 @@ function(input, output, session) {
         return()
       }
       # browser()
-      if (current_users_nr %>% filter(u_ind == cu_ind) %>% nrow() > 0) {
+      if (current_users_nr %>% filter(u_ind == cu_ind) %>% nrow() > 0) { # if someone has already signed in as cu_ind
         # browser()
         if (current_users_nr$u_gnm[current_users_nr$u_ind == cu_ind] == cu_gnm) {
           add_to_log_str(paste0('You  have already signed in as ', cu_ind, '!'), 
@@ -194,7 +194,7 @@ function(input, output, session) {
       }
     }
     # browser()
-    if (cu_ind == 1) {
+    if (cu_ind == 1) { # if the user signing in as admin
       insertUI(
         # multiple = TRUE,
         selector = '#firstRow',
@@ -214,7 +214,16 @@ function(input, output, session) {
 
 #===============================================================================
 # supporting undo_run_command()
-  undo_run_command.cu <- function(cmd_ind) {
+  undo_command <- function(cmnd) {
+    UseMethod("run_command")
+  }
+  
+  undo_command <- function(cmnd) {
+    add_to_log_str(paste0('Command "', class(cmnd), '" (tried to be undone) is unknown!'), 
+                   'wrng')
+  }
+  
+  undo_command.cu <- function(cmd_ind) {
     # if_else ()
   }
 # supporting undo_run_command()
