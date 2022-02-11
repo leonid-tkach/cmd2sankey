@@ -7,7 +7,7 @@ library(jsonlite)
 fluidPage(
   useKeys(),
   keysInput('keys', c('enter'), global = TRUE),
-  fluidRow(
+  fluidRow(id = 'firstRow',
     column(7,
            column(2,
                   textInput('tmnl', 'Terminal'),

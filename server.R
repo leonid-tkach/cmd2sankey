@@ -1,38 +1,37 @@
 #===============================================================================
 # global variables
 
-load('datasets.RData')
-# dataset <- reactiveVal(dataset_nr)
-# commands <- reactiveVal(commands_nr)
-# cmd_log <- reactiveVal(cmd_log_nr)
+# load('datasets.RData')
+dataset <- reactiveVal(tibble(
+  cmd = character(), # nu (new user), nc (new country), ns (new state)
+  cmd_ind = numeric(), # command index (user runs commands one by one)
+  u_nm = character(),
+  c_nm = character(),
+  s_nm = character()
+))
 
-# dataset <- reactiveVal(tibble(
-#   cmd = character(), # nu (new user), nc (new country), ns (new state)
-#   cmd_ind = numeric(), # command index (user runs commands one by one)
-#   u_nm = character(),
-#   c_nm = character(),
-#   s_nm = character()
-# ))
-# 
-# commands <- reactiveVal(tribble(
-#   ~cmd, ~args,
-#   'nu', c('u_nm'), # new user
-#   'cu', c('u_ind'), # choose user (u_ind is not existing argument but
-#                     # user's indicator in dataset, one by one)
-#   'nc', c('c_nm'), # new country
-#   'ns', c('s_nm') # new state
-# ))
-# 
-# cmd_log <- reactiveVal(tibble(
-#   cmd_ind = numeric(),
-#   cmd = character(),
-#   args = character()
-# ))
+commands <- reactiveVal(tribble(
+  ~cmd, ~args,
+  'nu', c('u_nm'), # new user
+  'cu', c('u_ind'), # choose user (u_ind is not existing argument but
+                    # user's indicator in dataset, one by one)
+  'nc', c('c_nm'), # new country
+  'ns', c('s_nm') # new state
+))
+
+cmd_log <- reactiveVal(tibble(
+  cmd_ind = numeric(),
+  cmd = character(),
+  args = character()
+))
 
 current_users <- reactiveVal(tibble(
   u_gnm = character(), # user's generated unique name
   u_ind = numeric() # index number of a known user (from dataset)
 ))
+
+cur_cmd_ind <- reactiveVal(nrow(cmd_log))
+
 # global variables
 #===============================================================================
 
@@ -192,8 +191,29 @@ function(input, output, session) {
     }
     current_users_nr$u_ind[current_users_nr$u_gnm == cu_gnm] <- cu_ind
     current_users(current_users_nr)
+    # browser()
+    if (cu_ind == 1) {
+      insertUI(
+        # multiple = TRUE,
+        selector = '#firstRow',
+        where = 'beforeBegin',
+        ui = fluidRow(id = 'admin_console', actionButton('undo', 'Undo'))
+      )
+    } else {
+      removeUI(
+        selector = '#admin_console',
+      )
+    }
   }
 # supporting run_command()
+#===============================================================================
+
+#===============================================================================
+# supporting undo_run_command()
+  undo_run_command.cu <- function(cmd_ind) {
+    # if_else ()
+  }
+# supporting undo_run_command()
 #===============================================================================
   
 }
