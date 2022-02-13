@@ -8,7 +8,7 @@ fluidPage(
   useKeys(),
   keysInput('keys', c('enter'), global = TRUE),
   fluidRow(id = 'firstRow',
-    column(7,
+    column(9,
            column(2,
                   textInput('tmnl', 'Terminal'),
                   actionButton('run', 'Run'),
@@ -17,10 +17,9 @@ fluidPage(
                   fluidRow(downloadButton('dl_btn', 'Download'),
                            fileInput('ul_btn', NULL, accept = '.json', placeholder = 'Upload your dataset'))
                   ),
-           column(6, div("Dataset"), reactableOutput('dataset')),
-           column(4, div("cmd_log"), reactableOutput('cmd_log'))
-    ),
-    column(2,
-           div("current_users"), reactableOutput('current_users'))
+           column(5, div("Dataset"), reactableOutput('dataset')),
+           column(3, div("cmd_log"), reactableOutput('cmd_log')),
+           column(2, div("current_users"), reactableOutput('current_users'))
+    )
   )
 )

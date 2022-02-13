@@ -12,6 +12,7 @@ rm(commands_nr)
 rm(cmd_log_nr)
 
 # dataset <- reactiveVal(tibble(
+#   u_ind = numeric(),
 #   cmd = character(), # nu (new user), nc (new country), ns (new state)
 #   cmd_ind = numeric(), # command index (user runs commands one by one)
 #   u_nm = character(),
@@ -35,8 +36,8 @@ rm(cmd_log_nr)
 # ))
 
 current_users <- reactiveVal(tibble(
-  u_gnm = character(), # user's generated unique name
-  u_ind = numeric() # index number of a known user (from dataset)
+  u_ind = numeric(), # index number of a known user (from dataset)
+  u_gnm = character() # user's generated unique name
 ))
 
 cur_cmd_ind <- reactiveVal(nrow(cmd_log))
@@ -51,7 +52,7 @@ function(input, output, session) {
 #===============================================================================
 # supporting current users()
   cu_gnm <- reactiveVal('') # current user's generated unique name
-  cu_ind <- reactiveVal(numeric()) # current user's indicator form current_users
+  cu_ind <- reactiveVal(0) # current user's indicator form current_users
   
   # browser()
   
@@ -128,6 +129,9 @@ function(input, output, session) {
   
   observeEvent(command(), {
     # browser()
+    if (command() == '') {
+      return()
+    }
     add_to_log_str(command(), 'cmd')
     isolate(updateTextInput(session, 'tmnl', value = ''))
     cmnd_vec <- str_extract_all(command(), '(\\w+)') %>% 
@@ -167,18 +171,33 @@ function(input, output, session) {
   
   run_command.nu <- function(cmnd) {
     # browser()
-    dataset(isolate(
-      dataset() %>% 
-        add_row(cmd_ind = nrow(cmd_log()),
-                cmd = 'nu',
-                u_nm = cmnd$args[[1]]
-        )
-    ))
+    users_num <- dataset() %>% filter(cmd == 'nu') %>% nrow()
+    if ((users_num > 0 && cu_ind() == 1) ||
+        (users_num == 0 && cu_ind() == 0)) { # only user 1 may add other users (user 1 is added by user 0)
+      # browser()
+      dataset(isolate(
+        dataset() %>% 
+          add_row(u_ind = cu_ind(),
+                  cmd_ind = nrow(cmd_log()),
+                  cmd = 'nu',
+                  u_nm = cmnd$args[[1]]
+          )
+      ))
+      
+    } else {
+      delete_last_row_in_cmd_log()
+      add_to_log_str(paste0('Only user ',
+                            (dataset() %>% filter(cmd == 'nu'))$u_nm[[1]],
+                            ' may add new users!'), 
+                     'wrng')
+    }
   }
   
   run_command.cu <- function(cmnd) {
-    cu_ind <- as.numeric(cmnd$args[[1]]) # chosen user's ind
-    if(is.na(cu_ind)) {
+    delete_last_row_in_cmd_log()
+    # browser()
+    cu_ind_nr <- as.numeric(cmnd$args[[1]]) # chosen user's ind
+    if(is.na(cu_ind_nr)) {
       add_to_log_str(paste0(cmnd$args[[1]], ' is not numeric!'), 
                      'wrng')
       delete_last_row_in_cmd_log()
@@ -186,22 +205,22 @@ function(input, output, session) {
     }
     users_num <- dataset() %>% filter(cmd == 'nu') %>% nrow()
     current_users_nr <- current_users()
-    if (cu_ind != 0) { # if the user is not signing out
-      if (cu_ind > users_num) {
-        add_to_log_str(paste0('There is no user ', cu_ind, 
+    if (cu_ind_nr != 0) { # if the user is not signing out
+      if (cu_ind_nr > users_num) {
+        add_to_log_str(paste0('There is no user ', cu_ind_nr, 
                               '! There are only ', users_num, ' users.'), 
                        'wrng')
         delete_last_row_in_cmd_log()
         return()
       }
       # browser()
-      if (current_users_nr %>% filter(u_ind == cu_ind) %>% nrow() > 0) { # if someone has already signed in as cu_ind
+      if (current_users_nr %>% filter(u_ind == cu_ind_nr) %>% nrow() > 0) { # if someone has already signed in as cu_ind
         # browser()
-        if (current_users_nr$u_gnm[current_users_nr$u_ind == cu_ind] == cu_gnm) {
-          add_to_log_str(paste0('You  have already signed in as ', cu_ind, '!'), 
+        if (current_users_nr$u_gnm[current_users_nr$u_ind == cu_ind_nr] == cu_gnm) {
+          add_to_log_str(paste0('You  have already signed in as ', cu_ind_nr, '!'), 
                          'wrng')
         } else {
-          add_to_log_str(paste0('Somebody has already signed in as user ', cu_ind, '!'), 
+          add_to_log_str(paste0('Somebody has already signed in as user ', cu_ind_nr, '!'), 
                          'wrng')
         }
         delete_last_row_in_cmd_log()
@@ -209,7 +228,7 @@ function(input, output, session) {
       }
     }
     # browser()
-    if (cu_ind == 1) { # if the user signing in as admin
+    if (cu_ind_nr == 1) { # if the user signing in as admin
       insertUI(
         # multiple = TRUE,
         selector = '#firstRow',
@@ -223,7 +242,8 @@ function(input, output, session) {
         selector = '#admin_console',
       )
     }
-    current_users_nr$u_ind[current_users_nr$u_gnm == cu_gnm] <- cu_ind
+    current_users_nr$u_ind[current_users_nr$u_gnm == cu_gnm] <- cu_ind_nr
+    cu_ind(cu_ind_nr)
     current_users(current_users_nr)
   }
 # supporting run_command()
