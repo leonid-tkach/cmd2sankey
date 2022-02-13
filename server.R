@@ -2,6 +2,15 @@
 # global variables
 
 load('datasets.RData')
+
+dataset <- reactiveVal(dataset_nr)
+commands <- reactiveVal(commands_nr)
+cmd_log <- reactiveVal(cmd_log_nr)
+
+rm(dataset_nr)
+rm(commands_nr)
+rm(cmd_log_nr)
+
 # dataset <- reactiveVal(tibble(
 #   cmd = character(), # nu (new user), nc (new country), ns (new state)
 #   cmd_ind = numeric(), # command index (user runs commands one by one)
@@ -55,9 +64,12 @@ function(input, output, session) {
     }))
     
     # browser()
-    save(dataset, 
-         commands, 
-         cmd_log, 
+    dataset_nr <- isolate(dataset())
+    commands_nr <- isolate(commands())
+    cmd_log_nr <- isolate(cmd_log())
+    save(dataset_nr, 
+         commands_nr, 
+         cmd_log_nr, 
          file = 'datasets.RData',
          envir = environment())
   })
@@ -115,6 +127,7 @@ function(input, output, session) {
   }
   
   observeEvent(command(), {
+    # browser()
     add_to_log_str(command(), 'cmd')
     isolate(updateTextInput(session, 'tmnl', value = ''))
     cmnd_vec <- str_extract_all(command(), '(\\w+)') %>% 
@@ -129,6 +142,9 @@ function(input, output, session) {
                             length(cmnd$args), ' args.'), 'wrng')
       return()
     }
+    # below code generates the error:
+    # Warning: Error in : Reactive context was created in one process and invalidated from another.
+    # [No stack trace available]
     cmd_log(isolate(
       cmd_log() %>% 
         add_row(cmd_ind = nrow(cmd_log()) + 1,
@@ -198,7 +214,9 @@ function(input, output, session) {
         # multiple = TRUE,
         selector = '#firstRow',
         where = 'beforeBegin',
-        ui = fluidRow(id = 'admin_console', actionButton('undo', 'Undo'))
+        ui = fluidRow(id = 'admin_console', 
+                      actionButton('undo', 'Undo'),
+                      actionButton('redo', 'Redo'))
       )
     } else {
       removeUI(
