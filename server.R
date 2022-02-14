@@ -8,22 +8,22 @@ dataset <- reactiveVal(dataset_nr)
 rm(dataset_nr)
 
 # dataset <- reactiveVal(tibble(
+#   u_ind = numeric(), # current user who run the command
 #   cmd_ind = numeric(), # command index (user runs commands one by one)
-#   cmd = character(), # nu (new user), nc (new country), ns (new state)
-#   u_ind = numeric(),
-#   u_nm = character(),
-#   c_nm = character(),
-#   s_nm = character()
+#   cmd = character(), # command name
+#   nm = character(),
+#   i1 = numeric(),
+#   i2 = numeric()
 # ))
 
 commands <- reactiveVal(tribble(
   ~cmd, ~args,
-  'nu', c('u_nm'), # new user
-  'cu', c('u_ind', 
-          '_pw'), # choose user (u_ind is user's indicator in dataset, one by one
-                  # arg with a name starting with '_' does not have its col in dataset
-  'nc', c('c_nm'), # new country
-  'ns', c('s_nm') # new state
+  'nu', c('nm'), # new user
+  'cu', c('i1', '_pw'), # choose user (i1 is user's indicator in dataset, one by one
+                        # arg with a name starting with '_' does not have its col in dataset
+  'nc', c('nm'), # new country
+  'ns', c('nm'), # new state
+  'uc', c('i1') # user's country; i1 is county indicator in dataset, one by one
 ))
 
 current_users <- reactiveVal(tibble(
@@ -135,7 +135,6 @@ function(input, output, session) {
                             length(cmnd$args), ' args.'), 'wrng')
       return()
     }
-    
     run_command(cmnd)
   })
   
@@ -159,14 +158,13 @@ function(input, output, session) {
           add_row(u_ind = cu_ind(),
                   cmd_ind = nrow(dataset()) + 1,
                   cmd = 'nu',
-                  u_nm = cmnd$args[[1]]
+                  nm = cmnd$args[[1]]
           )
       ))
-      
     } else {
       add_to_log_str(paste0('Only user ',
-                            (dataset() %>% filter(cmd == 'nu'))$u_nm[[1]],
-                            ' may add new users!'), 
+                            (dataset() %>% filter(cmd == 'nu'))$nm[[1]],
+                            ' can add new users!'), 
                      'wrng')
     }
   }
@@ -174,7 +172,7 @@ function(input, output, session) {
   check_pw <- function(c_a) {
     # browser()
     if(as.numeric(c_a[[1]]) == 0) return(TRUE)
-    nm <- (dataset() %>% filter(cmd == 'nu'))$u_nm[[as.numeric(c_a[[1]])]]
+    nm <- (dataset() %>% filter(cmd == 'nu'))$nm[[as.numeric(c_a[[1]])]]
     if (c_a[[2]] == substr(nm, 1, 3)) {
       return(TRUE)
     } else {
@@ -184,26 +182,18 @@ function(input, output, session) {
   
   run_command.cu <- function(cmnd) {
     if (!check_pw(cmnd$args)) {
-      add_to_log_str(paste0('Wrong!'), 
-                     'wrng')
+      add_to_log_str(paste0('Wrong!'), 'wrng')
       return()
     }
     # browser()
     cu_ind_nr <- as.numeric(cmnd$args[[1]]) # chosen user's ind
     if(is.na(cu_ind_nr)) {
-      add_to_log_str(paste0(cmnd$args[[1]], ' is not numeric!'), 
-                     'wrng')
+      add_to_log_str(paste0(cmnd$args[[1]], ' is not numeric!'), 'wrng')
       return()
     }
     users_num <- dataset() %>% filter(cmd == 'nu') %>% nrow()
     current_users_nr <- current_users()
     if (cu_ind_nr != 0) { # if the user is not signing out
-      if (cu_ind_nr > users_num) {
-        add_to_log_str(paste0('There is no user ', cu_ind_nr, 
-                              '! There are only ', users_num, ' users.'), 
-                       'wrng')
-        return()
-      }
       # browser()
       if (current_users_nr %>% filter(u_ind == cu_ind_nr) %>% nrow() > 0) { # if someone has already signed in as cu_ind
         # browser()
@@ -243,7 +233,7 @@ function(input, output, session) {
         add_row(u_ind = cu_ind(),
                 cmd_ind = nrow(dataset()) + 1,
                 cmd = 'nc',
-                c_nm = cmnd$args[[1]]
+                nm = cmnd$args[[1]]
         )
     ))
   }
@@ -254,7 +244,28 @@ function(input, output, session) {
         add_row(u_ind = cu_ind(),
                 cmd_ind = nrow(dataset()) + 1,
                 cmd = 'ns',
-                s_nm = cmnd$args[[1]]
+                nm = cmnd$args[[1]]
+        )
+    ))
+  }
+  
+  run_command.uc <- function(cmnd) {
+    cu_uc_ds <- dataset() %>% # all countries of current user
+      filter(u_ind == cu_ind(), cmd == 'uc')
+    cu_uc_num <- nrow(cu_uc_ds) # how many countries current user mentioned
+    if (cu_uc_num > 0) {
+      add_to_log_str(paste0('The last country you mentioned was ', 
+                            cu_uc_ds$nm[[cu_uc_num]], 
+                            '. To change it use command ... .'), 
+                     'wrng')
+      return()
+    }
+    dataset(isolate(
+      dataset() %>% 
+        add_row(u_ind = cu_ind(),
+                cmd_ind = nrow(dataset()) + 1,
+                cmd = 'uc',
+                i1 = as.numeric(cmnd$args[[1]])
         )
     ))
   }
