@@ -1,15 +1,11 @@
 #===============================================================================
 # global variables
 
-load('datasets.RData')
+load('dataset.RData')
 
 dataset <- reactiveVal(dataset_nr)
-commands <- reactiveVal(commands_nr)
-cmd_log <- reactiveVal(cmd_log_nr)
 
 rm(dataset_nr)
-rm(commands_nr)
-rm(cmd_log_nr)
 
 # dataset <- reactiveVal(tibble(
 #   u_ind = numeric(),
@@ -19,28 +15,22 @@ rm(cmd_log_nr)
 #   c_nm = character(),
 #   s_nm = character()
 # ))
-# 
-# commands <- reactiveVal(tribble(
-#   ~cmd, ~args,
-#   'nu', c('u_nm'), # new user
-#   'cu', c('u_ind'), # choose user (u_ind is not existing argument but
-#                     # user's indicator in dataset, one by one)
-#   'nc', c('c_nm'), # new country
-#   'ns', c('s_nm') # new state
-# ))
-# 
-# cmd_log <- reactiveVal(tibble(
-#   cmd_ind = numeric(),
-#   cmd = character(),
-#   args = character()
-# ))
+
+commands <- reactiveVal(tribble(
+  ~cmd, ~args,
+  'nu', c('u_nm'), # new user
+  'cu', c('u_ind'), # choose user (u_ind is not existing argument but
+                    # user's indicator in dataset, one by one)
+  'nc', c('c_nm'), # new country
+  'ns', c('s_nm') # new state
+))
 
 current_users <- reactiveVal(tibble(
   u_ind = numeric(), # index number of a known user (from dataset)
   u_gnm = character() # user's generated unique name
 ))
 
-cur_cmd_ind <- reactiveVal(nrow(cmd_log))
+cur_cmd_ind <- reactiveVal(nrow(isolate(dataset())))
 
 # global variables
 #===============================================================================
@@ -66,12 +56,8 @@ function(input, output, session) {
     
     # browser()
     dataset_nr <- isolate(dataset())
-    commands_nr <- isolate(commands())
-    cmd_log_nr <- isolate(cmd_log())
     save(dataset_nr, 
-         commands_nr, 
-         cmd_log_nr, 
-         file = 'datasets.RData',
+         file = 'dataset.RData',
          envir = environment())
   })
   
@@ -98,10 +84,6 @@ function(input, output, session) {
     reactable(current_users())
   })
   
-  output$cmd_log <- renderReactable({
-    reactable(cmd_log() %>% arrange(desc(cmd_ind)))
-  })
-  
   output$log <- renderUI({
     HTML(log_str())
   })
@@ -115,9 +97,9 @@ function(input, output, session) {
 
 #===============================================================================
 # supporting run_command()
-  delete_last_row_in_cmd_log <- function() {
-    cmd_log(isolate(
-      head(cmd_log(), -1)
+  delete_last_row_in_dataset <- function() {
+    dataset(isolate(
+      head(dataset(), -1)
     ))
   }
   
@@ -146,16 +128,7 @@ function(input, output, session) {
                             length(cmnd$args), ' args.'), 'wrng')
       return()
     }
-    # below code generates the error:
-    # Warning: Error in : Reactive context was created in one process and invalidated from another.
-    # [No stack trace available]
-    cmd_log(isolate(
-      cmd_log() %>% 
-        add_row(cmd_ind = nrow(cmd_log()) + 1,
-                cmd = class(cmnd),
-                args = paste(cmnd$args, collapse = ' ')
-        )
-    ))
+    
     run_command(cmnd)
   })
   
@@ -164,7 +137,6 @@ function(input, output, session) {
   }
   
   run_command.default <- function(cmnd) {
-    delete_last_row_in_cmd_log()
     add_to_log_str(paste0('Command "', class(cmnd), '" is unknown!'), 
                    'wrng')
   }
@@ -178,14 +150,13 @@ function(input, output, session) {
       dataset(isolate(
         dataset() %>% 
           add_row(u_ind = cu_ind(),
-                  cmd_ind = nrow(cmd_log()),
+                  cmd_ind = nrow(dataset()) + 1,
                   cmd = 'nu',
                   u_nm = cmnd$args[[1]]
           )
       ))
       
     } else {
-      delete_last_row_in_cmd_log()
       add_to_log_str(paste0('Only user ',
                             (dataset() %>% filter(cmd == 'nu'))$u_nm[[1]],
                             ' may add new users!'), 
@@ -194,13 +165,11 @@ function(input, output, session) {
   }
   
   run_command.cu <- function(cmnd) {
-    delete_last_row_in_cmd_log()
     # browser()
     cu_ind_nr <- as.numeric(cmnd$args[[1]]) # chosen user's ind
     if(is.na(cu_ind_nr)) {
       add_to_log_str(paste0(cmnd$args[[1]], ' is not numeric!'), 
                      'wrng')
-      delete_last_row_in_cmd_log()
       return()
     }
     users_num <- dataset() %>% filter(cmd == 'nu') %>% nrow()
@@ -210,7 +179,6 @@ function(input, output, session) {
         add_to_log_str(paste0('There is no user ', cu_ind_nr, 
                               '! There are only ', users_num, ' users.'), 
                        'wrng')
-        delete_last_row_in_cmd_log()
         return()
       }
       # browser()
@@ -223,7 +191,6 @@ function(input, output, session) {
           add_to_log_str(paste0('Somebody has already signed in as user ', cu_ind_nr, '!'), 
                          'wrng')
         }
-        delete_last_row_in_cmd_log()
         return()
       }
     }
@@ -261,7 +228,7 @@ function(input, output, session) {
   }
   
   undo_command.nu <- function(cmd_ind) {
-    if (cmd_ind != nrow(cmd_log)) {
+    if (cmd_ind != nrow(dataset)) {
       add_to_log_str(paste0(cmd_ind, ' is not the last command!'), 
                      'wrng')
       return()
