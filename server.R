@@ -236,6 +236,17 @@ function(input, output, session) {
     cu_ind(cu_ind_nr)
     current_users(current_users_nr)
   }
+  
+  run_command.nc <- function(cmnd) {
+    dataset(isolate(
+      dataset() %>% 
+        add_row(u_ind = cu_ind(),
+                cmd_ind = nrow(dataset()) + 1,
+                cmd = 'nc',
+                c_nm = cmnd$args[[1]]
+        )
+    ))
+  }
 # supporting run_command()
 #===============================================================================
 
