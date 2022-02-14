@@ -19,8 +19,9 @@ rm(dataset_nr)
 commands <- reactiveVal(tribble(
   ~cmd, ~args,
   'nu', c('u_nm'), # new user
-  'cu', c('u_ind'), # choose user (u_ind is not existing argument but
-                    # user's indicator in dataset, one by one)
+  'cu', c('u_ind', 
+          '_pw'), # choose user (u_ind is user's indicator in dataset, one by one
+                  # arg with a name starting with '_' does not have its col in dataset
   'nc', c('c_nm'), # new country
   'ns', c('s_nm') # new state
 ))
@@ -121,7 +122,7 @@ function(input, output, session) {
     cmnd <- structure(class = cmnd_vec[1],
                       list(args = cmnd_vec[-1]))
     # browser()
-    args_num <- length(commands()$args[commands()$cmd == class(cmnd)])
+    args_num <- length(commands()$args[commands()$cmd == class(cmnd)] %>% unlist())
     if (length(cmnd$args) < args_num) {
       add_to_log_str(paste0('Command "', class(cmnd), '" has ',
                             args_num, ' args, but you have only provided ',
@@ -164,7 +165,23 @@ function(input, output, session) {
     }
   }
   
+  check_pw <- function(c_a) {
+    # browser()
+    if(as.numeric(c_a[[1]]) == 0) return(TRUE)
+    nm <- (dataset() %>% filter(cmd == 'nu'))$u_nm[[as.numeric(c_a[[1]])]]
+    if (c_a[[2]] == substr(nm, 1, 3)) {
+      return(TRUE)
+    } else {
+      return(FALSE)
+    }
+  }
+  
   run_command.cu <- function(cmnd) {
+    if (!check_pw(cmnd$args)) {
+      add_to_log_str(paste0('Wrong!'), 
+                     'wrng')
+      return()
+    }
     # browser()
     cu_ind_nr <- as.numeric(cmnd$args[[1]]) # chosen user's ind
     if(is.na(cu_ind_nr)) {
