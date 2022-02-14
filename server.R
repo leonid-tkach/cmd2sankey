@@ -8,9 +8,9 @@ dataset <- reactiveVal(dataset_nr)
 rm(dataset_nr)
 
 # dataset <- reactiveVal(tibble(
-#   u_ind = numeric(),
-#   cmd = character(), # nu (new user), nc (new country), ns (new state)
 #   cmd_ind = numeric(), # command index (user runs commands one by one)
+#   cmd = character(), # nu (new user), nc (new country), ns (new state)
+#   u_ind = numeric(),
 #   u_nm = character(),
 #   c_nm = character(),
 #   s_nm = character()
@@ -119,6 +119,12 @@ function(input, output, session) {
     isolate(updateTextInput(session, 'tmnl', value = ''))
     cmnd_vec <- str_extract_all(command(), '(\\w+)') %>% 
       unlist()
+    # if user tries do anything before signing in
+    # exception: adding the very first user
+    if (cu_ind() == 0 && nrow(dataset()) > 0 && cmnd_vec[1] != 'cu') {
+      add_to_log_str( 'Please sign in!', 'wrng')
+      return()
+    }
     cmnd <- structure(class = cmnd_vec[1],
                       list(args = cmnd_vec[-1]))
     # browser()
