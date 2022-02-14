@@ -247,6 +247,17 @@ function(input, output, session) {
         )
     ))
   }
+  
+  run_command.ns <- function(cmnd) {
+    dataset(isolate(
+      dataset() %>% 
+        add_row(u_ind = cu_ind(),
+                cmd_ind = nrow(dataset()) + 1,
+                cmd = 'ns',
+                s_nm = cmnd$args[[1]]
+        )
+    ))
+  }
 # supporting run_command()
 #===============================================================================
 
