@@ -249,13 +249,17 @@ function(input, output, session) {
     ))
   }
   
+  # cmd date/time
   run_command.uc <- function(cmnd) {
     cu_uc_ds <- dataset() %>% # all countries of current user
       filter(u_ind == cu_ind(), cmd == 'uc')
     cu_uc_num <- nrow(cu_uc_ds) # how many countries current user mentioned
     if (cu_uc_num > 0) {
+      # browser()
+      c_ind <- as.numeric(cu_uc_ds$nm[[cu_uc_num]])
+      c_nm <- (dataset() %>% filter(cmd == 'nc'))$nm[[1]] # country name by ind
       add_to_log_str(paste0('The last country you mentioned was ', 
-                            cu_uc_ds$nm[[cu_uc_num]], 
+                            c_nm, 
                             '. To change it use command ... .'), 
                      'wrng')
       return()
