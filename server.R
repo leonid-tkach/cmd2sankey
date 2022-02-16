@@ -4,8 +4,10 @@
 load('dataset.RData')
 
 dataset <- reactiveVal(dataset_nr)
+cur_cmd_i <- reactiveVal(cur_cmd_i_nr)
 
 rm(dataset_nr)
+rm(cur_cmd_i_nr)
 
 # dataset <- reactiveVal(tibble(
 #   u_i = numeric(), # current user who run the command
@@ -19,6 +21,8 @@ rm(dataset_nr)
 #   d = numeric(),
 #   t = character()
 # ))
+# 
+# cur_cmd_i <- reactiveVal(0)
 
 commands <- reactiveVal(tribble(
   ~cmd, ~args,
@@ -27,7 +31,8 @@ commands <- reactiveVal(tribble(
                         # arg with a name starting with '_' does not have its col in dataset
   'nc', c('nm'), # new country
   'ns', c('nm'), # new state
-  'uc', c('i1') # user's country; i1 is county indicator in dataset, one by one
+  'uc', c('i1'), # user's country; i1 is county indicator in dataset, one by one
+  'u', c() # undo last command of current user
 ))
 
 current_users <- reactiveVal(tibble(
@@ -35,7 +40,6 @@ current_users <- reactiveVal(tibble(
   u_gnm = character() # user's generated unique name
 ))
 
-cur_cmd_ind <- reactiveVal(nrow(isolate(dataset())))
 
 # global variables
 #===============================================================================
@@ -61,7 +65,9 @@ function(input, output, session) {
     
     # browser()
     dataset_nr <- isolate(dataset())
+    cur_cmd_i_nr <- isolate(cur_cmd_i())
     save(dataset_nr, 
+         cur_cmd_i_nr, 
          file = 'dataset.RData',
          envir = environment())
   })
@@ -118,6 +124,19 @@ function(input, output, session) {
                    log_str()))
   }
   
+  launch_undo <- function() {
+    cuser_last_cmd_row <- isolate(
+      dataset() %>% 
+        filter(u_i == cu_ind()) %>% 
+        arrange(cmd_i) %>% 
+        tail(1)
+    )
+    # browser()
+    cmnd <- structure(class = cuser_last_cmd_row$cmd[[1]],
+                      list(cmd_i = cuser_last_cmd_row$cmd_i[[1]]))
+    undo_command(cmnd)
+  }
+  
   observeEvent(command(), {
     # browser()
     if (command() == '') {
@@ -127,6 +146,7 @@ function(input, output, session) {
     isolate(updateTextInput(session, 'tmnl', value = ''))
     cmnd_vec <- str_extract_all(command(), '(\\w+)') %>% 
       unlist()
+    command(isolate('')) # to enable two similar commands in seq
     # if user tries do anything before signing in
     # exception: adding the very first user
     if (cu_ind() == 0 && nrow(dataset()) > 0 && cmnd_vec[1] != 'cu') {
@@ -137,19 +157,24 @@ function(input, output, session) {
                       list(args = cmnd_vec[-1]))
     # browser()
     args_num <- length(commands()$args[commands()$cmd == class(cmnd)] %>% unlist())
-    if (length(cmnd$args) < args_num) {
+    if (length(cmnd$args) != args_num) {
       add_to_log_str(paste0('Command "', class(cmnd), '" has ',
-                            args_num, ' args, but you have only provided ',
+                            args_num, ' args, but you have provided ',
                             length(cmnd$args), ' args.'), 'wrng')
+      return()
+    }
+    if (cmnd_vec[1] == 'u') {
+      launch_undo()
       return()
     }
     rc_res <- run_command(cmnd)
     if (rc_res$add_to_ds) { # cmnd is ok to add to dataset
       now_dt <- now(tzone = 'EST')
+      cur_cmd_i(isolate(cur_cmd_i() + 1))
       dataset(isolate(
         dataset() %>% 
           add_row(u_i = cu_ind(),
-                  cmd_i = nrow(dataset()) + 1,
+                  cmd_i = cur_cmd_i(),
                   cmd = cmnd_vec[1],
                   nm = rc_res$nm,
                   i1 = rc_res$i1,
@@ -170,6 +195,7 @@ function(input, output, session) {
   run_command.default <- function(cmnd) {
     add_to_log_str(paste0('Command "', class(cmnd), '" is unknown!'), 
                    'wrng')
+    return(list(add_to_ds = FALSE))
   }
   
   run_command.nu <- function(cmnd) {
@@ -252,14 +278,14 @@ function(input, output, session) {
   
   run_command.nc <- function(cmnd) {
     return(list(add_to_ds = TRUE,
-                nm = cmnd$args[[1]],
+                nm = paste(cmnd$args, collapse = ' '),
                 i1 = NA,
                 i2 = NA))
   }
   
   run_command.ns <- function(cmnd) {
     return(list(add_to_ds = TRUE,
-                nm = cmnd$args[[1]],
+                nm = paste(cmnd$args, collapse = ' '),
                 i1 = NA,
                 i2 = NA))
   }
@@ -290,22 +316,34 @@ function(input, output, session) {
 #===============================================================================
 # supporting undo_command()
   undo_command <- function(cmnd) {
-    UseMethod("run_command")
+    UseMethod("undo_command")
   }
   
-  undo_command <- function(cmnd) {
-    add_to_log_str(paste0('Command "', class(cmnd), '" (tried to be undone) is unknown!'), 
+  undo_command.default <- function(cmnd) {
+    add_to_log_str(paste0('The command "', class(cmnd), '" you tried to undo is unknown!'), 
                    'wrng')
   }
   
-  undo_command.nu <- function(cmd_ind) {
-    if (cmd_ind != nrow(dataset)) {
-      add_to_log_str(paste0(cmd_ind, ' is not the last command!'), 
-                     'wrng')
-      return()
-    }
+  undo_command.nu <- function(cmnd) {
+    # browser()
+    dataset(
+      isolate(dataset() %>% 
+                filter(cmd_i != cmnd$cmd_i))
+      )
+  }
+
+  undo_command.nc <- function(cmnd) {
     
   }
+
+  undo_command.ns <- function(cmnd) {
+    
+  }
+
+  undo_command.uc <- function(cmnd) {
+    
+  }
+  
 # supporting undo_command()
 #===============================================================================
   
