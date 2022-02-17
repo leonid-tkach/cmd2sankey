@@ -316,15 +316,24 @@ function(input, output, session) {
     if (cu_uc_num > 0) {
       # browser()
       add_to_log_str(paste0('You have already set your country. It is ', 
-                            cu_uc_ds$nm, 
+                            (dataset() %>% filter(cmd_i == cu_uc_ds$i1))$nm, 
                             '. To change it use the command ... .'), 
                      'wrng')
       return(list(add_to_ds = FALSE))
     }
-    return(list(add_to_ds = TRUE,
-                nm = NA,
-                i1 = as.numeric(cmnd$args[[1]]),
-                i2 = NA))
+    c_cmd_i <- as.numeric(cmnd$args[[1]])
+    if((dataset() %>% 
+        filter(cmd == 'nc', cmd_i == c_cmd_i) %>% 
+        nrow()) == 0) {
+      add_to_log_str('There is no such country in the dataset!', 
+                     'wrng')
+      return(list(add_to_ds = FALSE))
+    } else {
+      return(list(add_to_ds = TRUE,
+                  nm = NA,
+                  i1 = c_cmd_i,
+                  i2 = NA))
+    }
   }
 # supporting run_command()
 #===============================================================================
