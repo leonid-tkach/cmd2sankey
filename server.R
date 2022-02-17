@@ -156,7 +156,9 @@ function(input, output, session) {
       return()
     }
     if(!str_detect(command(), "^[a-zA-Z0-9_\\-\\' ]+$")) {
-      add_to_log_str("Cannot recognize characters. Could you please use characters a-z, A_Z, _, -, ', and space?", 'wrng')
+      add_to_log_str("Unfortunately, some characters are unrecognizable. 
+                     Could you please use only characters a-z, A_Z, _, -, ', and space?", 
+                     'wrng')
       return()
     }
     add_to_log_str(command(), 'cmd')
