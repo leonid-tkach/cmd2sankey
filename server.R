@@ -133,7 +133,7 @@ function(input, output, session) {
     cuser_rows_num <- nrow(cuser_rows)
     if (cuser_rows_num == 0) {
       add_to_log_str(paste0('User ',
-                            (dataset() %>% filter(cmd == 'nu'))$nm[[cu_ind()]],
+                            (dataset() %>% filter(cmd_i == cu_ind()))$nm,
                             ' does not have any commands to undo!'), 
                      'wrng')
       return()
@@ -147,9 +147,6 @@ function(input, output, session) {
     undo_command(cmnd)
   }
   
-  # here
-  # only latin (any command/argument) or warning
-  # all indexes (users, countries, states) to cmd_i (not one by one)
   observeEvent(command(), {
     # browser()
     if (command() == '') {
@@ -236,10 +233,11 @@ function(input, output, session) {
     }
   }
   
-  check_pw <- function(c_a) {
+  check_pw <- function(c_a) {as.numeric(c_a[[1]])
     # browser()
-    if(as.numeric(c_a[[1]]) == 0) return(TRUE)
-    nm <- (dataset() %>% filter(cmd == 'nu'))$nm[[as.numeric(c_a[[1]])]]
+    u_cmd_i <- as.numeric(c_a[[1]])
+    if(u_cmd_i == 0) return(TRUE)
+    nm <- (dataset() %>% filter(cmd_i == u_cmd_i))$nm
     if (c_a[[2]] == substr(nm, 1, 3)) {
       return(TRUE)
     } else {
@@ -248,6 +246,7 @@ function(input, output, session) {
   }
   
   run_command.cu <- function(cmnd) {
+    # browser()
     if (!check_pw(cmnd$args)) {
       add_to_log_str(paste0('Wrong!'), 'wrng')
       return(list(add_to_ds = FALSE))
@@ -316,11 +315,9 @@ function(input, output, session) {
     cu_uc_num <- nrow(cu_uc_ds) # how many countries current user mentioned
     if (cu_uc_num > 0) {
       # browser()
-      c_ind <- as.numeric(cu_uc_ds$nm[[cu_uc_num]])
-      c_nm <- (dataset() %>% filter(cmd == 'nc'))$nm[[1]] # country name by ind
-      add_to_log_str(paste0('The last country you mentioned was ', 
-                            c_nm, 
-                            '. To change it use command ... .'), 
+      add_to_log_str(paste0('You have already set your country. It is ', 
+                            cu_uc_ds$nm, 
+                            '. To change it use the command ... .'), 
                      'wrng')
       return(list(add_to_ds = FALSE))
     }
