@@ -147,9 +147,16 @@ function(input, output, session) {
     undo_command(cmnd)
   }
   
+  # here
+  # only latin (any command/argument) or warning
+  # all indexes (users, countries, states) to cmd_i (not one by one)
   observeEvent(command(), {
     # browser()
     if (command() == '') {
+      return()
+    }
+    if(!str_detect(command(), "^[a-zA-Z0-9_\\-\\' ]+$")) {
+      add_to_log_str("Cannot recognize characters. Could you please use characters a-z, A_Z, _, -, ', and space?", 'wrng')
       return()
     }
     add_to_log_str(command(), 'cmd')
@@ -277,7 +284,7 @@ function(input, output, session) {
       )
     } else {
       removeUI(
-        selector = '#admin_console',
+        selector = '#admin_console'
       )
     }
     current_users_nr$u_ind[current_users_nr$u_gnm == cu_gnm] <- cu_ind_nr
@@ -286,10 +293,6 @@ function(input, output, session) {
     return(list(add_to_ds = FALSE))
   }
   
-  # here
-  # user/country/state name with spaces
-  # only latin (any command/argument) or warning
-  # all indexes (users, countries, states) to cmd_i (not one by one)
   run_command.nc <- function(cmnd) {
     return(list(add_to_ds = TRUE,
                 nm = paste(cmnd$args, collapse = ' '),
