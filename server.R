@@ -125,12 +125,22 @@ function(input, output, session) {
   }
   
   launch_undo <- function() {
-    cuser_last_cmd_row <- isolate(
+    # browser()
+    cuser_rows <- isolate(
       dataset() %>% 
-        filter(u_i == cu_ind()) %>% 
-        arrange(cmd_i) %>% 
-        tail(1)
+        filter(u_i == cu_ind())
     )
+    cuser_rows_num <- nrow(cuser_rows)
+    if (cuser_rows_num == 0) {
+      add_to_log_str(paste0('User ',
+                            (dataset() %>% filter(cmd == 'nu'))$nm[[cu_ind()]],
+                            ' does not have any commands to undo!'), 
+                     'wrng')
+      return()
+    }
+    cuser_last_cmd_row <- cuser_rows %>% 
+      arrange(cmd_i) %>% 
+      tail(1)
     # browser()
     cmnd <- structure(class = cuser_last_cmd_row$cmd[[1]],
                       list(cmd_i = cuser_last_cmd_row$cmd_i[[1]]))
@@ -157,7 +167,7 @@ function(input, output, session) {
                       list(args = cmnd_vec[-1]))
     # browser()
     args_num <- length(commands()$args[commands()$cmd == class(cmnd)] %>% unlist())
-    if (length(cmnd$args) != args_num) {
+    if (length(cmnd$args) < args_num) {
       add_to_log_str(paste0('Command "', class(cmnd), '" has ',
                             args_num, ' args, but you have provided ',
                             length(cmnd$args), ' args.'), 'wrng')
@@ -205,7 +215,7 @@ function(input, output, session) {
         (users_num == 0 && cu_ind() == 0)) { # only user 1 may add other users (user 1 is added by user 0)
       # browser()
       return(list(add_to_ds = TRUE,
-                  nm = cmnd$args[[1]],
+                  nm = paste(cmnd$args, collapse = ' '),
                   i1 = NA,
                   i2 = NA))
     } else {
@@ -276,6 +286,10 @@ function(input, output, session) {
     return(list(add_to_ds = FALSE))
   }
   
+  # here
+  # user/country/state name with spaces
+  # only latin (any command/argument) or warning
+  # all indexes (users, countries, states) to cmd_i (not one by one)
   run_command.nc <- function(cmnd) {
     return(list(add_to_ds = TRUE,
                 nm = paste(cmnd$args, collapse = ' '),
@@ -333,15 +347,24 @@ function(input, output, session) {
   }
 
   undo_command.nc <- function(cmnd) {
-    
+    dataset(
+      isolate(dataset() %>% 
+                filter(cmd_i != cmnd$cmd_i))
+    )
   }
 
   undo_command.ns <- function(cmnd) {
-    
+    dataset(
+      isolate(dataset() %>% 
+                filter(cmd_i != cmnd$cmd_i))
+    )
   }
 
   undo_command.uc <- function(cmnd) {
-    
+    dataset(
+      isolate(dataset() %>% 
+                filter(cmd_i != cmnd$cmd_i))
+    )
   }
   
 # supporting undo_command()
