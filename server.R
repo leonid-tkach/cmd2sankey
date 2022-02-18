@@ -156,6 +156,8 @@ function(input, output, session) {
       add_to_log_str("Unfortunately, some characters are unrecognizable. 
                      Could you please use only characters a-z, A_Z, _, -, ', and space?", 
                      'wrng')
+      isolate(updateTextInput(session, 'tmnl', value = ''))
+      command(isolate(''))
       return()
     }
     add_to_log_str(command(), 'cmd')
@@ -351,10 +353,23 @@ function(input, output, session) {
   
   undo_command.nu <- function(cmnd) {
     # browser()
-    dataset(
-      isolate(dataset() %>% 
-                filter(cmd_i != cmnd$cmd_i))
+    d_user_commands <- dataset() %>% # commands launched by the user to be deleted
+      filter(u_i == cmnd$cmd_i)
+    if (nrow(d_user_commands) > 0) {
+      add_to_log_str(paste0('There are commands launched by the user ',
+                            cmnd$nm,
+                            ' you are trying to delete: ', 
+                            paste(d_user_commands %>% 
+                                    select(cmd_i, cmd) %>% 
+                                    pmap(function(cmd_i, cmd) paste(cmd_i, cmd, collapse = ' ')),
+                                  collapse = ', '), 
+                            '.'),
+                     'wrng')
+    } else {
+      dataset(isolate(dataset() %>% 
+                        filter(cmd_i != cmnd$cmd_i))
       )
+    }
   }
 
   undo_command.nc <- function(cmnd) {

@@ -10,7 +10,7 @@ fluidPage(
   useKeys(),
   keysInput('keys', c('enter'), global = TRUE),
   fluidRow(id = 'firstRow',
-    column(8,
+    column(9,
            column(2,
                   textInput('tmnl', 'Terminal'),
                   actionButton('run', 'Run'),
