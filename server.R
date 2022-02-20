@@ -381,18 +381,15 @@ function(input, output, session) {
     d_country_commands <- dataset() %>% # commands using the country to be deleted
       filter(i1 == cmnd$cmd_i)
     if (nrow(d_country_commands) > 0) {
-      add_to_log_str(paste0('There are commands using the country ',
-                            cmnd$nm,
-                            ' you are trying to delete: ', 
+      add_to_log_str(paste0('There are commands using the country "',
+                            (dataset() %>% filter(cmd_i == cmnd$cmd_i))$nm,
+                            '" you are trying to delete: ', 
                             paste(d_country_commands %>% 
                                     select(u_i, cmd_i, cmd) %>% 
-                                    pmap(function(u_i, cmd_i, cmd) {
-                                      # here
-                                      # There are commands using the country you are trying to delete: 19 uc.
-                                      # no country russia, no user fyodor
-                                      # browser()
+                                    pmap(function(u_i_a, cmd_i, cmd) {
                                       paste((dataset() %>% 
-                                               filter(cmd == 'nu', i1 == u_i))$nm, 
+                                               filter(cmd_i == u_i_a))$nm, 
+                                            ': ',
                                             cmd_i, 
                                             cmd, 
                                             collapse = ' ')
