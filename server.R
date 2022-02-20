@@ -235,14 +235,20 @@ function(input, output, session) {
     }
   }
   
-  check_pw <- function(c_a) {as.numeric(c_a[[1]])
+  check_pw <- function(c_a) {
     # browser()
     u_cmd_i <- as.numeric(c_a[[1]])
     if(u_cmd_i == 0) return(TRUE)
-    nm <- (dataset() %>% filter(cmd_i == u_cmd_i))$nm
+    signing_in_user_row <- dataset() %>% filter(cmd_i == u_cmd_i)
+    if (nrow(signing_in_user_row) == 0) {
+      add_to_log_str(paste0('There is no user with cmd_i ', u_cmd_i, '!'), 'wrng')
+      return(FALSE)
+    }
+    nm <- signing_in_user_row$nm
     if (c_a[[2]] == substr(nm, 1, 3)) {
       return(TRUE)
     } else {
+      add_to_log_str(paste0('Wrong!'), 'wrng')
       return(FALSE)
     }
   }
@@ -250,7 +256,6 @@ function(input, output, session) {
   run_command.cu <- function(cmnd) {
     # browser()
     if (!check_pw(cmnd$args)) {
-      add_to_log_str(paste0('Wrong!'), 'wrng')
       return(list(add_to_ds = FALSE))
     }
     # browser()
@@ -259,7 +264,7 @@ function(input, output, session) {
       add_to_log_str(paste0(cmnd$args[[1]], ' is not numeric!'), 'wrng')
       return(list(add_to_ds = FALSE))
     }
-    users_num <- dataset() %>% filter(cmd == 'nu') %>% nrow()
+    # browser()
     current_users_nr <- current_users()
     if (cu_ind_nr != 0) { # if the user is not signing out
       # browser()
@@ -373,10 +378,34 @@ function(input, output, session) {
   }
 
   undo_command.nc <- function(cmnd) {
-    dataset(
-      isolate(dataset() %>% 
-                filter(cmd_i != cmnd$cmd_i))
-    )
+    d_country_commands <- dataset() %>% # commands using the country to be deleted
+      filter(i1 == cmnd$cmd_i)
+    if (nrow(d_country_commands) > 0) {
+      add_to_log_str(paste0('There are commands using the country ',
+                            cmnd$nm,
+                            ' you are trying to delete: ', 
+                            paste(d_country_commands %>% 
+                                    select(u_i, cmd_i, cmd) %>% 
+                                    pmap(function(u_i, cmd_i, cmd) {
+                                      # here
+                                      # There are commands using the country you are trying to delete: 19 uc.
+                                      # no country russia, no user fyodor
+                                      # browser()
+                                      paste((dataset() %>% 
+                                               filter(cmd == 'nu', i1 == u_i))$nm, 
+                                            cmd_i, 
+                                            cmd, 
+                                            collapse = ' ')
+                                    }),
+                                  collapse = ', '), 
+                            '.'),
+                     'wrng')
+    } else {
+      dataset(
+        isolate(dataset() %>% 
+                  filter(cmd_i != cmnd$cmd_i))
+      )
+    }
   }
 
   undo_command.ns <- function(cmnd) {
