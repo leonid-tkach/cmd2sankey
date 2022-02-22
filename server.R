@@ -1,5 +1,4 @@
-#===============================================================================
-# global variables
+#_global variables==============================================================
 
 load('dataset.RData')
 
@@ -40,16 +39,14 @@ current_users <- reactiveVal(tibble(
   u_gnm = character() # user's generated unique name
 ))
 
-
-# global variables
-#===============================================================================
+#-global variables==============================================================
 
 function(input, output, session) {
   command <- reactiveVal('')
   log_str <- reactiveVal('')
   
-#===============================================================================
-# supporting current users()
+#_supporting current users()====================================================
+  
   cu_gnm <- reactiveVal('') # current user's generated unique name
   cu_ind <- reactiveVal(0) # current user's indicator form current_users
   
@@ -82,11 +79,11 @@ function(input, output, session) {
     ))
     session_init <- TRUE
   }
-# supporting current users()
-#===============================================================================
   
-#===============================================================================
-# supporting ui
+#-supporting current users()====================================================
+  
+#_supporting ui=================================================================
+  
   output$dataset <- renderReactable({
     reactable(dataset() %>% 
                 arrange(desc(cmd_i)) %>% 
@@ -107,11 +104,11 @@ function(input, output, session) {
     # browser()
     command(input$tmnl)
   })
-# supporting ui
-#===============================================================================
+  
+#-supporting ui=================================================================
 
-#===============================================================================
-# supporting run_command()
+#_supporting run_command()======================================================
+  
   delete_last_row_in_dataset <- function() {
     dataset(isolate(
       head(dataset(), -1)
@@ -315,38 +312,49 @@ function(input, output, session) {
                 i2 = NA))
   }
   
-  # cmd date/time
-  run_command.uc <- function(cmnd) {
-    cu_uc_ds <- dataset() %>% # all countries of current user
-      filter(u_i == cu_ind(), cmd == 'uc')
-    cu_uc_num <- nrow(cu_uc_ds) # how many countries current user mentioned
-    if (cu_uc_num > 0) {
+  #here
+  runner_uc_us <- function(cmnd,
+                           cs) { # user country or state ('c' or 's')
+    ncs <- paste0('n', class(cmnd) %>% substr(2, 2))
+    cs_word <- if_else(ncs == 'nc', 'country', 'state')
+    cu_ucs_ds <- dataset() %>% # all countries/states of current user
+      filter(u_i == cu_ind(), cmd == class(cmnd))
+    cu_ucs_num <- nrow(cu_ucs_ds) # how many countries/states current user mentioned
+    if (cu_ucs_num > 0) {
       # browser()
-      add_to_log_str(paste0('You have already set your country. It is ', 
-                            (dataset() %>% filter(cmd_i == cu_uc_ds$i1))$nm, 
+      add_to_log_str(paste0('You have already set your ', cs_word, '. It is ', 
+                            (dataset() %>% filter(cmd_i == cu_ucs_ds$i1))$nm, 
                             '. To change it use the command ... .'), 
                      'wrng')
       return(list(add_to_ds = FALSE))
     }
-    c_cmd_i <- as.numeric(cmnd$args[[1]])
-    if((dataset() %>% 
-        filter(cmd == 'nc', cmd_i == c_cmd_i) %>% 
+    cs_cmd_i <- as.numeric(cmnd$args[[1]])
+    if((dataset() %>% # here (see error)
+        filter(cmd == ncs, cmd_i == cs_cmd_i) %>% 
         nrow()) == 0) {
-      add_to_log_str('There is no such country in the dataset!', 
+      add_to_log_str(paste0('There is no such ', cs_word, ' in the dataset!'), 
                      'wrng')
       return(list(add_to_ds = FALSE))
     } else {
       return(list(add_to_ds = TRUE,
                   nm = NA,
-                  i1 = c_cmd_i,
+                  i1 = cs_cmd_i,
                   i2 = NA))
     }
   }
-# supporting run_command()
-#===============================================================================
-
-#===============================================================================
-# supporting undo_command()
+  
+  run_command.uc <- function(cmnd) {
+    runner_uc_us(cmnd, 'c')
+  }
+  
+  run_command.us <- function(cmnd) {
+    runner_uc_us(cmnd, 'c')
+  }
+  
+#-supporting run_command()======================================================
+  
+#_supporting undo_command()=====================================================
+  
   undo_command <- function(cmnd) {
     UseMethod("undo_command")
   }
@@ -377,11 +385,13 @@ function(input, output, session) {
     }
   }
 
-  undo_command.nc <- function(cmnd) {
+  undoer_nc_ns <- function(cmnd) {
+    ncs <- class(cmnd)
+    cs_word <- if_else(ncs == 'nc', 'country', 'state')
     d_country_commands <- dataset() %>% # commands using the country to be deleted
       filter(i1 == cmnd$cmd_i)
     if (nrow(d_country_commands) > 0) {
-      add_to_log_str(paste0('There are commands using the country "',
+      add_to_log_str(paste0('There are commands using ', cs_word, ' "',
                             (dataset() %>% filter(cmd_i == cmnd$cmd_i))$nm,
                             '" you are trying to delete: ', 
                             paste(d_country_commands %>% 
@@ -404,12 +414,13 @@ function(input, output, session) {
       )
     }
   }
+  
+  undo_command.nc <- function(cmnd) {
+    undoer_nc_ns(cmnd)
+  }
 
   undo_command.ns <- function(cmnd) {
-    dataset(
-      isolate(dataset() %>% 
-                filter(cmd_i != cmnd$cmd_i))
-    )
+    undoer_nc_ns(cmnd)
   }
 
   undo_command.uc <- function(cmnd) {
@@ -419,7 +430,13 @@ function(input, output, session) {
     )
   }
   
-# supporting undo_command()
-#===============================================================================
+  undo_command.us <- function(cmnd) {
+    dataset(
+      isolate(dataset() %>% 
+                filter(cmd_i != cmnd$cmd_i))
+    )
+  }
+  
+#-supporting undo_command()=====================================================
   
 }
