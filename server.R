@@ -9,9 +9,9 @@ rm(dataset_nr)
 rm(cur_cmd_i_nr)
 
 # dataset <- reactiveVal(tibble(
-#   u_i = numeric(), # current user who run the command
 #   cmd_i = numeric(), # command index (user runs commands one by one)
 #   cmd = character(), # command name
+#   u_i = numeric(), # current user who run the command
 #   nm = character(),
 #   i1 = numeric(),
 #   i2 = numeric(),
