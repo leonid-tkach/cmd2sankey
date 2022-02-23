@@ -146,7 +146,6 @@ function(input, output, session) {
     undo_command(cmnd)
   }
   
-  # here
   launch_rename <- function(cmnd_vec) {
     rn_cmd_i <- as.numeric(cmnd_vec[[2]])
     if (is.na(rn_cmd_i)) {
@@ -161,7 +160,7 @@ function(input, output, session) {
                      'wrng')
       return()
     }
-    if (the_cmd$u_i != cu_ind()) {
+    if (the_cmd$u_i != cu_ind() && (cu_ind() != 1 || the_cmd$u_i != 0)) {
       add_to_log_str(paste0('Only user ', 
                             (dataset() %>% filter(cmd_i == the_cmd$u_i))$nm,
                             ' may rename this element!'), 
@@ -173,7 +172,6 @@ function(input, output, session) {
                      'wrng')
       return()
     }
-    # browser()
     dataset_nr <- dataset()
     dataset_nr$nm[dataset_nr$cmd_i == rn_cmd_i] <- paste(cmnd_vec[c(-1, -2)], collapse = ' ')
     dataset(dataset_nr)
@@ -351,7 +349,6 @@ function(input, output, session) {
                 i2 = NA))
   }
   
-  #here
   runner_uc_us <- function(cmnd,
                            cs) { # user country or state ('c' or 's')
     ncs <- paste0('n', class(cmnd) %>% substr(2, 2))
@@ -368,7 +365,7 @@ function(input, output, session) {
       return(list(add_to_ds = FALSE))
     }
     cs_cmd_i <- as.numeric(cmnd$args[[1]])
-    if((dataset() %>% # here (see error)
+    if((dataset() %>%
         filter(cmd == ncs, cmd_i == cs_cmd_i) %>% 
         nrow()) == 0) {
       add_to_log_str(paste0('There is no such ', cs_word, ' in the dataset!'), 
