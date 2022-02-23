@@ -31,7 +31,9 @@ commands <- reactiveVal(tribble(
   'nc', c('nm'), # new country
   'ns', c('nm'), # new state
   'uc', c('i1'), # user's country; i1 is county indicator in dataset, one by one
-  'u', c() # undo last command of current user
+  'u', c(), # undo last command of current user
+  'rn', c('cmd_i', '_nnm') # new name
+                            # arg with a name starting with '_' does not have its col in dataset
 ))
 
 current_users <- reactiveVal(tibble(
@@ -144,6 +146,39 @@ function(input, output, session) {
     undo_command(cmnd)
   }
   
+  # here
+  launch_rename <- function(cmnd_vec) {
+    rn_cmd_i <- as.numeric(cmnd_vec[[2]])
+    if (is.na(rn_cmd_i)) {
+      add_to_log_str(paste0('"', cmnd_vec[[2]], '" is not numeric!'), 
+                     'wrng')
+      return()
+    }
+    the_cmd <- dataset() %>% 
+      filter(cmd_i == rn_cmd_i)
+    if (nrow(the_cmd) == 0) {
+      add_to_log_str("There is no command with such a cmd_i you are trying to rename!", 
+                     'wrng')
+      return()
+    }
+    if (the_cmd$u_i != cu_ind()) {
+      add_to_log_str(paste0('Only user ', 
+                            (dataset() %>% filter(cmd_i == the_cmd$u_i))$nm,
+                            ' may rename this element!'), 
+                     'wrng')
+      return()
+    }
+    if (is.na(the_cmd$nm)) {
+      add_to_log_str(paste0('Command ', the_cmd$cmd_i, ':', the_cmd$cmd, ' does not use "nm".'), 
+                     'wrng')
+      return()
+    }
+    # browser()
+    dataset_nr <- dataset()
+    dataset_nr$nm[dataset_nr$cmd_i == rn_cmd_i] <- paste(cmnd_vec[c(-1, -2)], collapse = ' ')
+    dataset(dataset_nr)
+  }
+  
   observeEvent(command(), {
     # browser()
     if (command() == '') {
@@ -174,12 +209,16 @@ function(input, output, session) {
     args_num <- length(commands()$args[commands()$cmd == class(cmnd)] %>% unlist())
     if (length(cmnd$args) < args_num) {
       add_to_log_str(paste0('Command "', class(cmnd), '" has ',
-                            args_num, ' args, but you have provided ',
+                            args_num, ' args, but you have only provided ',
                             length(cmnd$args), ' args.'), 'wrng')
       return()
     }
     if (cmnd_vec[1] == 'u') {
       launch_undo()
+      return()
+    }
+    if (cmnd_vec[1] == 'rn') {
+      launch_rename(cmnd_vec)
       return()
     }
     rc_res <- run_command(cmnd)
