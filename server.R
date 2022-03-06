@@ -23,6 +23,13 @@ rm(cur_cmd_i_nr)
 # 
 # cur_cmd_i <- reactiveVal(0)
 
+snk_fig <- reactiveVal(list(
+  node = tibble(label = character(),
+                color = character()),
+  link = tibble(source = numeric(),
+                target = numeric(),
+                value = numeric())))
+
 commands <- reactiveVal(tribble(
   ~cmd, ~args,
   'nu', c('nm'), # new user
@@ -32,8 +39,9 @@ commands <- reactiveVal(tribble(
   'ns', c('nm'), # new state
   'uc', c('i1'), # user's country; i1 is county indicator in dataset, one by one
   'u', c(), # undo last command of current user
-  'rn', c('cmd_i', '_nnm') # new name
+  'rn', c('cmd_i', '_nnm'), # new name
                             # arg with a name starting with '_' does not have its col in dataset
+  'ntn', c('i1','nm') # new to_node. i1 - from_node
 ))
 
 current_users <- reactiveVal(tibble(
@@ -109,6 +117,20 @@ function(input, output, session) {
   
 #-supporting ui=================================================================
 
+#_utils=========================================================================
+
+  val_as_numeric <- function(num_val_in_char) {
+    num_val <- as.numeric(num_val_in_char) # here
+    if (is.na(num_val)) {
+      add_to_log_str(paste0('"', num_val_in_char, '" is not numeric!'), 
+                     'wrng')
+      return(NA)
+    }
+    return(num_val)
+  }
+    
+#-utils=========================================================================
+  
 #_supporting run_command()======================================================
   
   delete_last_row_in_dataset <- function() {
@@ -147,12 +169,8 @@ function(input, output, session) {
   }
   
   launch_rename <- function(cmnd_vec) {
-    rn_cmd_i <- as.numeric(cmnd_vec[[2]])
-    if (is.na(rn_cmd_i)) {
-      add_to_log_str(paste0('"', cmnd_vec[[2]], '" is not numeric!'), 
-                     'wrng')
-      return()
-    }
+    rn_cmd_i <- val_as_numeric(cmnd_vec[[2]])
+    if (is.na(rn_cmd_i)) return()
     the_cmd <- dataset() %>% 
       filter(cmd_i == rn_cmd_i)
     if (nrow(the_cmd) == 0) {
@@ -219,6 +237,7 @@ function(input, output, session) {
       launch_rename(cmnd_vec)
       return()
     }
+    # browser()
     rc_res <- run_command(cmnd)
     if (rc_res$add_to_ds) { # cmnd is ok to add to dataset
       now_dt <- now(tzone = 'EST')
@@ -271,7 +290,8 @@ function(input, output, session) {
   
   check_pw <- function(c_a) {
     # browser()
-    u_cmd_i <- as.numeric(c_a[[1]])
+    u_cmd_i <- val_as_numeric(c_a[[1]])
+    if (is.na(u_cmd_i)) return(FALSE)
     if(u_cmd_i == 0) return(TRUE)
     signing_in_user_row <- dataset() %>% filter(cmd_i == u_cmd_i)
     if (nrow(signing_in_user_row) == 0) {
@@ -293,11 +313,8 @@ function(input, output, session) {
       return(list(add_to_ds = FALSE))
     }
     # browser()
-    cu_ind_nr <- as.numeric(cmnd$args[[1]]) # chosen user's ind
-    if(is.na(cu_ind_nr)) {
-      add_to_log_str(paste0(cmnd$args[[1]], ' is not numeric!'), 'wrng')
-      return(list(add_to_ds = FALSE))
-    }
+    cu_ind_nr <- val_as_numeric(cmnd$args[[1]]) # chosen user's ind
+    if(is.na(cu_ind_nr)) return(list(add_to_ds = FALSE))
     # browser()
     current_users_nr <- current_users()
     if (cu_ind_nr != 0) { # if the user is not signing out
@@ -387,6 +404,24 @@ function(input, output, session) {
     runner_uc_us(cmnd, 'c')
   }
   
+  run_command.ntn <- function(cmnd) {
+    from_node <- val_as_numeric(cmnd$args[[1]])
+    if (is.na(from_node)) return(list(add_to_ds = FALSE))
+    
+    # if () { 
+    #   return(list(add_to_ds = TRUE,
+    #               nm = paste(cmnd$args, collapse = ' '),
+    #               i1 = NA,
+    #               i2 = NA))
+    # } else {
+    #   add_to_log_str(paste0('Only user ',
+    #                         (dataset() %>% filter(cmd == 'nu'))$nm[[1]],
+    #                         ' can add new users!'), 
+    #                  'wrng')
+    #   return(list(add_to_ds = FALSE))
+    # }
+  }
+  
 #-supporting run_command()======================================================
   
 #_supporting undo_command()=====================================================
@@ -472,7 +507,13 @@ function(input, output, session) {
                 filter(cmd_i != cmnd$cmd_i))
     )
   }
-  
+
 #-supporting undo_command()=====================================================
+  
+#_supporting sankey=============================================================
+  
+
+#-supporting sankey=============================================================
+  
   
 }
