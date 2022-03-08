@@ -120,15 +120,52 @@ function(input, output, session) {
 #_utils=========================================================================
 
   val_as_numeric <- function(num_val_in_char) {
+    # browser()
     num_val <- as.numeric(num_val_in_char) # here
     if (is.na(num_val)) {
       add_to_log_str(paste0('"', num_val_in_char, '" is not numeric!'), 
                      'wrng')
-      return(NA)
+      attr(num_val, "ok") <- FALSE
+      return(num_val)
     }
+    attr(num_val, "ok") <- TRUE
     return(num_val)
   }
+  
+  row_by_cmd_i <- function(cmd_i_a, txt_before, txt_after, ncs = NA) {
+    # browser()
+    if(is.na(ncs)) the_row <- dataset() %>% filter(cmd_i == cmd_i_a)
+    else the_row <- dataset() %>% filter(cmd_i == cmd_i_a, cmd == ncs) # for searching countries and states
     
+    if (nrow(the_row) == 0) {
+      add_to_log_str(paste0(txt_before, as.character(cmd_i_a), txt_after), 
+                     'wrng')
+      attr(the_row, "ok") <- FALSE
+      return(the_row)
+    }
+    attr(the_row, "ok") <- TRUE
+    return(the_row)
+  }
+  
+  check_pw <- function(c_a) {
+    # browser()
+    u_cmd_i <- val_as_numeric(c_a[[1]])
+    if (!attr(u_cmd_i, "ok")) return(FALSE)
+    if(u_cmd_i == 0) return(TRUE)
+    
+    signing_in_user_row <- row_by_cmd_i(u_cmd_i, 'There is no user with cmd_i=', '!')
+    if (!attr(signing_in_user_row, "ok")) return(FALSE)
+    
+    nm <- signing_in_user_row$nm
+    # browser()
+    if (c_a[[2]] == substr(nm, 1, 3)) {
+      return(TRUE)
+    } else {
+      add_to_log_str(paste0('Wrong!'), 'wrng')
+      return(FALSE)
+    }
+  }
+  
 #-utils=========================================================================
   
 #_supporting run_command()======================================================
@@ -167,17 +204,14 @@ function(input, output, session) {
                       list(cmd_i = cuser_last_cmd_row$cmd_i[[1]]))
     undo_command(cmnd)
   }
-  
+
   launch_rename <- function(cmnd_vec) {
     rn_cmd_i <- val_as_numeric(cmnd_vec[[2]])
-    if (is.na(rn_cmd_i)) return()
-    the_cmd <- dataset() %>% 
-      filter(cmd_i == rn_cmd_i)
-    if (nrow(the_cmd) == 0) {
-      add_to_log_str("There is no command with such a cmd_i you are trying to rename!", 
-                     'wrng')
-      return()
-    }
+    if (!attr(rn_cmd_i, "ok")) return()
+    
+    the_cmd <- row_by_cmd_i(rn_cmd_i, 'There is no element with cmd_i=', ' you are trying to rename!')
+    if (!attr(the_cmd, "ok")) return()
+    
     if (the_cmd$u_i != cu_ind() && (cu_ind() != 1 || the_cmd$u_i != 0)) {
       add_to_log_str(paste0('Only user ', 
                             (dataset() %>% filter(cmd_i == the_cmd$u_i))$nm,
@@ -242,6 +276,7 @@ function(input, output, session) {
     if (rc_res$add_to_ds) { # cmnd is ok to add to dataset
       now_dt <- now(tzone = 'EST')
       cur_cmd_i(isolate(cur_cmd_i() + 1))
+      # browser()
       dataset(isolate(
         dataset() %>% 
           add_row(u_i = cu_ind(),
@@ -288,25 +323,6 @@ function(input, output, session) {
     }
   }
   
-  check_pw <- function(c_a) {
-    # browser()
-    u_cmd_i <- val_as_numeric(c_a[[1]])
-    if (is.na(u_cmd_i)) return(FALSE)
-    if(u_cmd_i == 0) return(TRUE)
-    signing_in_user_row <- dataset() %>% filter(cmd_i == u_cmd_i)
-    if (nrow(signing_in_user_row) == 0) {
-      add_to_log_str(paste0('There is no user with cmd_i ', u_cmd_i, '!'), 'wrng')
-      return(FALSE)
-    }
-    nm <- signing_in_user_row$nm
-    if (c_a[[2]] == substr(nm, 1, 3)) {
-      return(TRUE)
-    } else {
-      add_to_log_str(paste0('Wrong!'), 'wrng')
-      return(FALSE)
-    }
-  }
-  
   run_command.cu <- function(cmnd) {
     # browser()
     if (!check_pw(cmnd$args)) {
@@ -314,7 +330,7 @@ function(input, output, session) {
     }
     # browser()
     cu_ind_nr <- val_as_numeric(cmnd$args[[1]]) # chosen user's ind
-    if(is.na(cu_ind_nr)) return(list(add_to_ds = FALSE))
+    if (!attr(cu_ind_nr, "ok")) return(list(add_to_ds = FALSE))
     # browser()
     current_users_nr <- current_users()
     if (cu_ind_nr != 0) { # if the user is not signing out
@@ -381,14 +397,16 @@ function(input, output, session) {
                      'wrng')
       return(list(add_to_ds = FALSE))
     }
-    cs_cmd_i <- as.numeric(cmnd$args[[1]])
-    if((dataset() %>%
-        filter(cmd == ncs, cmd_i == cs_cmd_i) %>% 
-        nrow()) == 0) {
-      add_to_log_str(paste0('There is no such ', cs_word, ' in the dataset!'), 
-                     'wrng')
+    cs_cmd_i <- val_as_numeric(cmnd$args[[1]])
+    # browser()
+    if (!attr(cs_cmd_i, "ok")) return(list(add_to_ds = FALSE))
+    signing_in_user_row <- row_by_cmd_i(cs_cmd_i, 
+                                        paste0('There is no such ', cs_word, ' (cmd_i='), 
+                                        ') in the dataset!', ncs)
+    if (!attr(signing_in_user_row, "ok")) {
       return(list(add_to_ds = FALSE))
     } else {
+      # browser()
       return(list(add_to_ds = TRUE,
                   nm = NA,
                   i1 = cs_cmd_i,
@@ -401,12 +419,12 @@ function(input, output, session) {
   }
   
   run_command.us <- function(cmnd) {
-    runner_uc_us(cmnd, 'c')
+    runner_uc_us(cmnd, 's')
   }
   
   run_command.ntn <- function(cmnd) {
     from_node <- val_as_numeric(cmnd$args[[1]])
-    if (is.na(from_node)) return(list(add_to_ds = FALSE))
+    if (!attr(from_node, "ok")) return(list(add_to_ds = FALSE))
     
     # if () { 
     #   return(list(add_to_ds = TRUE,
