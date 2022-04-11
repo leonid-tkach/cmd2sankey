@@ -1,6 +1,6 @@
 #_global variables==============================================================
 
-load('dataset.RData')
+load('dataset.RData') # load dataset_nr, cur_cmd_i_nr
 
 dataset <- reactiveVal(dataset_nr)
 cur_cmd_i <- reactiveVal(cur_cmd_i_nr)
@@ -41,7 +41,8 @@ commands <- reactiveVal(tribble(
   'u', c(), # undo last command of current user
   'rn', c('cmd_i', '_nnm'), # new name
                             # arg with a name starting with '_' does not have its col in dataset
-  'ntn', c('i1','nm') # new to_node. i1 - from_node
+  # here
+  'nn', c('nm', 'i1', '_tf') # new node named nm. i1 - 0: from_node, 1: to_node
 ))
 
 current_users <- reactiveVal(tibble(
@@ -132,10 +133,10 @@ function(input, output, session) {
     return(num_val)
   }
   
-  row_by_cmd_i <- function(cmd_i_a, txt_before, txt_after, ncs = NA) {
+  row_by_cmd_i <- function(cmd_i_a, txt_before, txt_after, cmd_a = NA) {
     # browser()
-    if(is.na(ncs)) the_row <- dataset() %>% filter(cmd_i == cmd_i_a)
-    else the_row <- dataset() %>% filter(cmd_i == cmd_i_a, cmd == ncs) # for searching countries and states
+    if(is.na(cmd_a)) the_row <- dataset() %>% filter(cmd_i == cmd_i_a)
+    else the_row <- dataset() %>% filter(cmd_i == cmd_i_a, cmd == cmd_a) # to searching among aommands cmd_a
     
     if (nrow(the_row) == 0) {
       add_to_log_str(paste0(txt_before, as.character(cmd_i_a), txt_after), 
@@ -402,7 +403,7 @@ function(input, output, session) {
     if (!attr(cs_cmd_i, "ok")) return(list(add_to_ds = FALSE))
     signing_in_user_row <- row_by_cmd_i(cs_cmd_i, 
                                         paste0('There is no such ', cs_word, ' (cmd_i='), 
-                                        ') in the dataset!', ncs)
+                                        ') in the dataset!', cmd_a = ncs)
     if (!attr(signing_in_user_row, "ok")) {
       return(list(add_to_ds = FALSE))
     } else {
@@ -422,9 +423,14 @@ function(input, output, session) {
     runner_uc_us(cmnd, 's')
   }
   
-  run_command.ntn <- function(cmnd) {
+  run_command.nn <- function(cmnd) {
     from_node <- val_as_numeric(cmnd$args[[1]])
     if (!attr(from_node, "ok")) return(list(add_to_ds = FALSE))
+    node_row <- row_by_cmd_i(rn_cmd_i, '', 
+                             '',
+                             cmd_a = 'nn')
+    if (!attr(the_cmd, "ok")) return(list(add_to_ds = FALSE))
+    
     
     # if () { 
     #   return(list(add_to_ds = TRUE,
