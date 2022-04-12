@@ -23,14 +23,14 @@ rm(cur_cmd_i_nr)
 # 
 # cur_cmd_i <- reactiveVal(0)
 
-snk_fig <- reactiveVal(list(
+snk_fig <- reactiveVal(list( # not used yet
   node = tibble(label = character(),
                 color = character()),
   link = tibble(source = numeric(),
                 target = numeric(),
                 value = numeric())))
 
-commands <- reactiveVal(tribble(
+commands <- reactiveVal(tribble( # terminal commands & args
   ~cmd, ~args,
   'nu', c('nm'), # new user
   'cu', c('i1', '_pw'), # choose user (i1 is user's indicator in dataset, one by one
@@ -45,7 +45,7 @@ commands <- reactiveVal(tribble(
   'nn', c('nm', 'i1', '_tf') # new node named nm. i1 - 0: from_node, 1: to_node
 ))
 
-current_users <- reactiveVal(tibble(
+current_users <- reactiveVal(tibble( # used in session$onSessionEnded()
   u_ind = numeric(), # index number of a known user (from dataset)
   u_gnm = character() # user's generated unique name
 ))
@@ -53,8 +53,8 @@ current_users <- reactiveVal(tibble(
 #-global variables==============================================================
 
 function(input, output, session) {
-  command <- reactiveVal('')
-  log_str <- reactiveVal('')
+  command <- reactiveVal('') # used in observeEvent(list(input$keys, input$run), {
+  log_str <- reactiveVal('') # used in output$log <- renderUI({
   
 #_supporting current users()====================================================
   
@@ -63,7 +63,7 @@ function(input, output, session) {
   
   # browser()
   
-  session_init <- FALSE
+  session_init <- FALSE # used in if (!session_init) {
   
   session$onSessionEnded(function() {
     # browser()
