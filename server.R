@@ -53,8 +53,8 @@ current_users <- reactiveVal(tibble( # used in session$onSessionEnded()
 #-global variables==============================================================
 
 function(input, output, session) {
-  command <- reactiveVal('') # used in observeEvent(list(input$keys, input$run), {
-  log_str <- reactiveVal('') # used in output$log <- renderUI({
+  command <- reactiveVal('') # changed in observeEvent(list(input$keys, input$run), {
+  log_str <- reactiveVal('') # outputted in output$log <- renderUI({
   
 #_supporting current users()====================================================
   
@@ -63,32 +63,32 @@ function(input, output, session) {
   
   # browser()
   
-  session_init <- FALSE # used in if (!session_init) {
+  session_init <- FALSE # this means: there is no new user yet
   
   session$onSessionEnded(function() {
     # browser()
     current_users(isolate({
       current_users() %>% filter(u_gnm != cu_gnm)
-    }))
+    })) # delete cu unique name from current_users
     
     # browser()
-    dataset_nr <- isolate(dataset())
-    cur_cmd_i_nr <- isolate(cur_cmd_i())
+    dataset_nr <- isolate(dataset()) # save current version to _nr
+    cur_cmd_i_nr <- isolate(cur_cmd_i()) # save current version to _nr
     save(dataset_nr, 
          cur_cmd_i_nr, 
          file = 'dataset.RData',
-         envir = environment())
+         envir = environment()) # save current data to dataset.RData
   })
   
-  if (!session_init) {
+  if (!session_init) { # if new user opened web app in browser
     # Seed username
-    cu_gnm <- paste0("User", round(runif(1, 10000, 99999)))
-    current_users(isolate(
+    cu_gnm <- paste0("User", round(runif(1, 10000, 99999))) # generate new user's unique name
+    current_users(isolate( # add new user to current_users
       current_users() %>% 
         add_row(u_gnm = cu_gnm,
                 u_ind = 0)
     ))
-    session_init <- TRUE
+    session_init <- TRUE # this means: the new user is here
   }
   
 #-supporting current users()====================================================
@@ -97,23 +97,26 @@ function(input, output, session) {
   
   output$dataset <- renderReactable({
     reactable(dataset() %>% 
-                arrange(desc(cmd_i)) %>% 
-                select(-dt),
-              defaultColDef = colDef(minWidth = 50))
+                arrange(desc(cmd_i)) %>% # newest command first
+                select(-dt), # no date  column
+              defaultColDef = colDef(minWidth = 50)) # https://glin.github.io/reactable/articles/examples.html
   })
   
   output$current_users <- renderReactable({
     reactable(current_users(),
-              defaultColDef = colDef(minWidth = 50))
+              defaultColDef = colDef(minWidth = 50)) # https://glin.github.io/reactable/articles/examples.html
   })
   
   output$log <- renderUI({
-    HTML(log_str())
+    HTML(log_str()) # update log window https://shiny.rstudio.com/reference/shiny/1.6.0/HTML.html
   })
   
-  observeEvent(list(input$keys, input$run), {
+  observeEvent(list(input$keys, # look in ui (keysInput('keys', c('enter'), global = TRUE))
+                                # read command if 'enter' pressed
+                                # https://rdrr.io/cran/keys/man/keysInput.html
+                    input$run), { # read command if abtn 'run' pressed
     # browser()
-    command(input$tmnl)
+    command(input$tmnl) # change command to string in terminal
   })
   
 #-supporting ui=================================================================
@@ -121,8 +124,8 @@ function(input, output, session) {
 #_utils=========================================================================
 
   val_as_numeric <- function(num_val_in_char) {
-    # browser()
-    num_val <- as.numeric(num_val_in_char) # here
+    # check if num (log it, if not), convert to num, init "ok"-attr of returned val with true or false
+    num_val <- as.numeric(num_val_in_char)
     if (is.na(num_val)) {
       add_to_log_str(paste0('"', num_val_in_char, '" is not numeric!'), 
                      'wrng')
@@ -134,9 +137,12 @@ function(input, output, session) {
   }
   
   row_by_cmd_i <- function(cmd_i_a, txt_before, txt_after, cmd_a = NA) {
-    # browser()
+    # return row by command index; if there is now such cmd_i, log it concatenating (txt_before, cmd_i, txt_after);
+    # init "ok"-attr of returned val with true or false;
+    # if cmd_a (nc, ns) provided, it searched only among 'nc' or 'ns' ('new country', 'new state');
+    # init "ok"-attr of returned val with true or false
     if(is.na(cmd_a)) the_row <- dataset() %>% filter(cmd_i == cmd_i_a)
-    else the_row <- dataset() %>% filter(cmd_i == cmd_i_a, cmd == cmd_a) # to searching among aommands cmd_a
+    else the_row <- dataset() %>% filter(cmd_i == cmd_i_a, cmd == cmd_a) # to searching among commands cmd_a
     
     if (nrow(the_row) == 0) {
       add_to_log_str(paste0(txt_before, as.character(cmd_i_a), txt_after), 
@@ -149,7 +155,7 @@ function(input, output, session) {
   }
   
   check_pw <- function(c_a) {
-    # browser()
+    # 
     u_cmd_i <- val_as_numeric(c_a[[1]])
     if (!attr(u_cmd_i, "ok")) return(FALSE)
     if(u_cmd_i == 0) return(TRUE)
