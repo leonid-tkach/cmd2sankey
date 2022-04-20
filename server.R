@@ -299,8 +299,7 @@ function(input, output, session) {
     }
   })
   
-  # S3
-  run_command <- function(cmnd) {
+  run_command <- function(cmnd) { # S3
     UseMethod("run_command")
   }
   
@@ -369,45 +368,42 @@ function(input, output, session) {
     return(list(add_to_ds = FALSE)) # this command does not yield a useful line in dataset
   }
   
-  run_command.nc <- function(cmnd) {
+  run_command.nc <- function(cmnd) { # add country
     return(list(add_to_ds = TRUE,
                 nm = paste(cmnd$args, collapse = ' '),
                 i1 = NA,
                 i2 = NA))
   }
   
-  run_command.ns <- function(cmnd) {
+  run_command.ns <- function(cmnd) { # add state
     return(list(add_to_ds = TRUE,
                 nm = paste(cmnd$args, collapse = ' '),
                 i1 = NA,
                 i2 = NA))
   }
   
-  runner_uc_us <- function(cmnd,
+  runner_uc_us <- function(cmnd, # used in run_command.uc and run_command.us
                            cs) { # user country or state ('c' or 's')
-    ncs <- paste0('n', class(cmnd) %>% substr(2, 2))
+    ncs <- paste0('n', class(cmnd) %>% substr(2, 2)) # ncs is 'nc' or 'ns'
     cs_word <- if_else(ncs == 'nc', 'country', 'state')
     cu_ucs_ds <- dataset() %>% # all countries/states of current user
       filter(u_i == cu_ind(), cmd == class(cmnd))
     cu_ucs_num <- nrow(cu_ucs_ds) # how many countries/states current user mentioned
-    if (cu_ucs_num > 0) {
-      # browser()
+    if (cu_ucs_num > 0) { # if current user already has country/state, quit
       add_to_log_str(paste0('You have already set your ', cs_word, '. It is ', 
                             (dataset() %>% filter(cmd_i == cu_ucs_ds$i1))$nm, 
-                            '. To change it use the command ... .'), 
+                            '. To change it use the command ... .'), # todo
                      'wrng')
       return(list(add_to_ds = FALSE))
     }
     cs_cmd_i <- val_as_numeric(cmnd$args[[1]])
-    # browser()
-    if (!attr(cs_cmd_i, "ok")) return(list(add_to_ds = FALSE))
+    if (!attr(cs_cmd_i, "ok")) return(list(add_to_ds = FALSE)) # if proposed country/state id is not numeric, quit
     signing_in_user_row <- row_by_cmd_i(cs_cmd_i, 
                                         paste0('There is no such ', cs_word, ' (cmd_i='), 
                                         ') in the dataset!', cmd_a = ncs)
-    if (!attr(signing_in_user_row, "ok")) {
+    if (!attr(signing_in_user_row, "ok")) { # if there is no country/state with such id, quit
       return(list(add_to_ds = FALSE))
     } else {
-      # browser()
       return(list(add_to_ds = TRUE,
                   nm = NA,
                   i1 = cs_cmd_i,
@@ -415,15 +411,16 @@ function(input, output, session) {
     }
   }
   
-  run_command.uc <- function(cmnd) {
+  run_command.uc <- function(cmnd) { # current user chooses their country
     runner_uc_us(cmnd, 'c')
   }
   
-  run_command.us <- function(cmnd) {
+  run_command.us <- function(cmnd) { # current user chooses their state
     runner_uc_us(cmnd, 's')
   }
   
-  run_command.nn <- function(cmnd) {
+  run_command.nn <- function(cmnd) { # add new node
+    # todo
     from_node <- val_as_numeric(cmnd$args[[1]])
     if (!attr(from_node, "ok")) return(list(add_to_ds = FALSE))
     node_row <- row_by_cmd_i(rn_cmd_i, '', 
@@ -450,7 +447,7 @@ function(input, output, session) {
   
 #_supporting undo_command()=====================================================
   
-  undo_command <- function(cmnd) {
+  undo_command <- function(cmnd) { # S3
     UseMethod("undo_command")
   }
   
@@ -460,10 +457,9 @@ function(input, output, session) {
   }
   
   undo_command.nu <- function(cmnd) {
-    # browser()
     d_user_commands <- dataset() %>% # commands launched by the user to be deleted
       filter(u_i == cmnd$cmd_i)
-    if (nrow(d_user_commands) > 0) {
+    if (nrow(d_user_commands) > 0) { # if there are any - don't delete the user
       add_to_log_str(paste0('There are commands launched by the user ',
                             cmnd$nm,
                             ' you are trying to delete: ', 
@@ -473,19 +469,19 @@ function(input, output, session) {
                                   collapse = ', '), 
                             '.'),
                      'wrng')
-    } else {
+    } else { # if there are no commands launched by the user - delete the user
       dataset(isolate(dataset() %>% 
                         filter(cmd_i != cmnd$cmd_i))
       )
     }
   }
 
-  undoer_nc_ns <- function(cmnd) {
+  undoer_nc_ns <- function(cmnd) { # used in undo_command.nc and undo_command.ns
     ncs <- class(cmnd)
     cs_word <- if_else(ncs == 'nc', 'country', 'state')
-    d_country_commands <- dataset() %>% # commands using the country to be deleted
+    d_country_commands <- dataset() %>% # commands using the country/state to be deleted
       filter(i1 == cmnd$cmd_i)
-    if (nrow(d_country_commands) > 0) {
+    if (nrow(d_country_commands) > 0) { # if there are any - don't delete the country/state
       add_to_log_str(paste0('There are commands using ', cs_word, ' "',
                             (dataset() %>% filter(cmd_i == cmnd$cmd_i))$nm,
                             '" you are trying to delete: ', 
@@ -502,7 +498,7 @@ function(input, output, session) {
                                   collapse = ', '), 
                             '.'),
                      'wrng')
-    } else {
+    } else { # if there are no commands using the country/state - delete the the country/state
       dataset(
         isolate(dataset() %>% 
                   filter(cmd_i != cmnd$cmd_i))
@@ -520,14 +516,14 @@ function(input, output, session) {
 
   undo_command.uc <- function(cmnd) {
     dataset(
-      isolate(dataset() %>% 
+      isolate(dataset() %>% # filter out the command
                 filter(cmd_i != cmnd$cmd_i))
     )
   }
   
   undo_command.us <- function(cmnd) {
     dataset(
-      isolate(dataset() %>% 
+      isolate(dataset() %>% # filter out the command
                 filter(cmd_i != cmnd$cmd_i))
     )
   }
