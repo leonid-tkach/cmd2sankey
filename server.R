@@ -33,7 +33,7 @@ snk_fig <- reactiveVal(list( # not used yet
 commands <- reactiveVal(tribble( # terminal commands & args
   ~cmd, ~args,
   'nu', c('nm'), # new user
-  'cu', c('i1', '_pw'), # choose user (i1 is user's indicator in dataset, one by one
+  'cu', c('i1', '_pw'), # choose user (i1 is user's indicator in dataset and current_users, one by one
                         # arg with a name starting with '_' does not have its col in dataset
   'nc', c('nm'), # new country
   'ns', c('nm'), # new state
@@ -54,24 +54,20 @@ current_users <- reactiveVal(tibble( # used in session$onSessionEnded()
 
 function(input, output, session) {
   command <- reactiveVal('') # changed in observeEvent(list(input$keys, input$run), {
-  log_str <- reactiveVal('') # outputted in output$log <- renderUI({
+  log_str <- reactiveVal('') # printed in output$log <- renderUI({
   
 #_supporting current users()====================================================
   
   cu_gnm <- reactiveVal('') # current user's generated unique name
-  cu_ind <- reactiveVal(0) # current user's indicator form current_users
-  
-  # browser()
+  cu_ind <- reactiveVal(0) # current user's indicator from current_users and dataset
   
   session_init <- FALSE # this means: there is no new user yet
   
   session$onSessionEnded(function() {
-    # browser()
     current_users(isolate({
       current_users() %>% filter(u_gnm != cu_gnm)
-    })) # delete cu unique name from current_users
+    })) # delete cu unique name from current_users before the user leaves the session
     
-    # browser()
     dataset_nr <- isolate(dataset()) # save current version to _nr
     cur_cmd_i_nr <- isolate(cur_cmd_i()) # save current version to _nr
     save(dataset_nr, 
@@ -114,7 +110,7 @@ function(input, output, session) {
   observeEvent(list(input$keys, # look in ui (keysInput('keys', c('enter'), global = TRUE))
                                 # read command if 'enter' pressed
                                 # https://rdrr.io/cran/keys/man/keysInput.html
-                    input$run), { # read command if abtn 'run' pressed
+                    input$run), { # read command if actbtn 'run' pressed
     # browser()
     command(input$tmnl) # change command to string in terminal
   })
@@ -138,7 +134,6 @@ function(input, output, session) {
   
   row_by_cmd_i <- function(cmd_i_a, txt_before, txt_after, cmd_a = NA) {
     # return row by command index; if there is now such cmd_i, log it concatenating (txt_before, cmd_i, txt_after);
-    # init "ok"-attr of returned val with true or false;
     # if cmd_a (nc, ns) provided, it searched only among 'nc' or 'ns' ('new country', 'new state');
     # init "ok"-attr of returned val with true or false
     if(is.na(cmd_a)) the_row <- dataset() %>% filter(cmd_i == cmd_i_a)
@@ -155,7 +150,8 @@ function(input, output, session) {
   }
   
   check_pw <- function(c_a) {
-    # 
+    # check password correctness;
+    # currently it must first three letters of the sign-ining user' name
     u_cmd_i <- val_as_numeric(c_a[[1]])
     if (!attr(u_cmd_i, "ok")) return(FALSE)
     if(u_cmd_i == 0) return(TRUE)
@@ -164,7 +160,6 @@ function(input, output, session) {
     if (!attr(signing_in_user_row, "ok")) return(FALSE)
     
     nm <- signing_in_user_row$nm
-    # browser()
     if (c_a[[2]] == substr(nm, 1, 3)) {
       return(TRUE)
     } else {
@@ -184,41 +179,45 @@ function(input, output, session) {
   }
   
   add_to_log_str <- function(str_to_add, cmd_wrng) {
+    # if command, print '>' first
     log_str(paste0(if_else(cmd_wrng == 'cmd', '> ', ''), 
                    str_to_add, '<br/>', 
                    log_str()))
   }
   
   launch_undo <- function() {
-    # browser()
-    cuser_rows <- isolate(
+    # used in observeEvent(command(), {
+    cuser_rows <- isolate( # filter to current user's commands
       dataset() %>% 
         filter(u_i == cu_ind())
     )
     cuser_rows_num <- nrow(cuser_rows)
-    if (cuser_rows_num == 0) {
+    if (cuser_rows_num == 0) { # if there no current user's commands, log the fact
       add_to_log_str(paste0('User ',
                             (dataset() %>% filter(cmd_i == cu_ind()))$nm,
                             ' does not have any commands to undo!'), 
                      'wrng')
       return()
     }
-    cuser_last_cmd_row <- cuser_rows %>% 
+    cuser_last_cmd_row <- cuser_rows %>% # find last cu's command
       arrange(cmd_i) %>% 
       tail(1)
-    # browser()
-    cmnd <- structure(class = cuser_last_cmd_row$cmd[[1]],
+    cmnd <- structure(class = cuser_last_cmd_row$cmd[[1]], # make a cmnd-structure of it
                       list(cmd_i = cuser_last_cmd_row$cmd_i[[1]]))
-    undo_command(cmnd)
+    undo_command(cmnd) # opposite to run_command (there is one for every command too)
   }
 
   launch_rename <- function(cmnd_vec) {
-    rn_cmd_i <- val_as_numeric(cmnd_vec[[2]])
+    # used in observeEvent(command(), {
+    rn_cmd_i <- val_as_numeric(cmnd_vec[[2]]) # check if ptovided cmd_i is numeric
     if (!attr(rn_cmd_i, "ok")) return()
     
     the_cmd <- row_by_cmd_i(rn_cmd_i, 'There is no element with cmd_i=', ' you are trying to rename!')
-    if (!attr(the_cmd, "ok")) return()
+    if (!attr(the_cmd, "ok")) return() # if tere is no such cmd_i
     
+    # only command's author can rename it
+    # if it is the very first command, it's u_i is 0 (not 1), because it is the very first user added themselves
+    # so user with u_i == 1 cand rename it
     if (the_cmd$u_i != cu_ind() && (cu_ind() != 1 || the_cmd$u_i != 0)) {
       add_to_log_str(paste0('Only user ', 
                             (dataset() %>% filter(cmd_i == the_cmd$u_i))$nm,
@@ -226,22 +225,22 @@ function(input, output, session) {
                      'wrng')
       return()
     }
-    if (is.na(the_cmd$nm)) {
+    if (is.na(the_cmd$nm)) { # quit, if the_cmd does not use name (as cu, uc, rn commands)
       add_to_log_str(paste0('Command ', the_cmd$cmd_i, ':', the_cmd$cmd, ' does not use "nm".'), 
                      'wrng')
       return()
     }
-    dataset_nr <- dataset()
+    dataset_nr <- dataset() # change nm in non-reactive version of dataset
+    # new name may consist of multiple words; I separate them with space
     dataset_nr$nm[dataset_nr$cmd_i == rn_cmd_i] <- paste(cmnd_vec[c(-1, -2)], collapse = ' ')
-    dataset(dataset_nr)
+    dataset(dataset_nr) # copy it to reactive version
   }
   
   observeEvent(command(), {
-    # browser()
-    if (command() == '') {
+    if (command() == '') { # command can't be empty
       return()
     }
-    if(!str_detect(command(), "^[a-zA-Z0-9_\\-\\' ]+$")) {
+    if(!str_detect(command(), "^[a-zA-Z0-9_\\-\\' ]+$")) { # command must by in Latin characters
       add_to_log_str("Unfortunately, some characters are unrecognizable. 
                      Could you please use only characters a-z, A_Z, _, -, ', and space?", 
                      'wrng')
@@ -250,26 +249,27 @@ function(input, output, session) {
       return()
     }
     add_to_log_str(command(), 'cmd')
-    isolate(updateTextInput(session, 'tmnl', value = ''))
-    cmnd_vec <- str_extract_all(command(), '(\\w+)') %>% 
+    isolate(updateTextInput(session, 'tmnl', value = '')) # empty command line
+    cmnd_vec <- str_extract_all(command(), '(\\w+)') %>% # extract words from command
       unlist()
-    command(isolate('')) # to enable two similar commands in seq
-    # if user tries do anything before signing in
-    # exception: adding the very first user
+    command(isolate('')) # empty command var to enable two similar commands in seq
     if (cu_ind() == 0 && nrow(dataset()) > 0 && cmnd_vec[1] != 'cu') {
+      # user cannot do anything before signing in
+      # exception: user can add the very first user (him/herself)
       add_to_log_str( 'Please sign in!', 'wrng')
       return()
     }
-    cmnd <- structure(class = cmnd_vec[1],
+    cmnd <- structure(class = cmnd_vec[1], # command name is its class; its args are in args
                       list(args = cmnd_vec[-1]))
-    # browser()
+    # count cmnd args according to commands-tibble
     args_num <- length(commands()$args[commands()$cmd == class(cmnd)] %>% unlist())
-    if (length(cmnd$args) < args_num) {
+    if (length(cmnd$args) < args_num) { # if there are not enough args
       add_to_log_str(paste0('Command "', class(cmnd), '" has ',
                             args_num, ' args, but you have only provided ',
                             length(cmnd$args), ' args.'), 'wrng')
       return()
     }
+    # commands not launched by run_command()
     if (cmnd_vec[1] == 'u') {
       launch_undo()
       return()
@@ -278,12 +278,10 @@ function(input, output, session) {
       launch_rename(cmnd_vec)
       return()
     }
-    # browser()
     rc_res <- run_command(cmnd)
-    if (rc_res$add_to_ds) { # cmnd is ok to add to dataset
+    if (rc_res$add_to_ds) { # if cmnd is ok to add to dataset
       now_dt <- now(tzone = 'EST')
       cur_cmd_i(isolate(cur_cmd_i() + 1))
-      # browser()
       dataset(isolate(
         dataset() %>% 
           add_row(u_i = cu_ind(),
@@ -301,6 +299,7 @@ function(input, output, session) {
     }
   })
   
+  # S3
   run_command <- function(cmnd) {
     UseMethod("run_command")
   }
@@ -312,11 +311,10 @@ function(input, output, session) {
   }
   
   run_command.nu <- function(cmnd) {
-    # browser()
-    users_num <- dataset() %>% filter(cmd == 'nu') %>% nrow()
+    # new user
+    users_num <- dataset() %>% filter(cmd == 'nu') %>% nrow() # current users' num
     if ((users_num > 0 && cu_ind() == 1) ||
         (users_num == 0 && cu_ind() == 0)) { # only user 1 may add other users (user 1 is added by user 0)
-      # browser()
       return(list(add_to_ds = TRUE,
                   nm = paste(cmnd$args, collapse = ' '),
                   i1 = NA,
@@ -331,31 +329,26 @@ function(input, output, session) {
   }
   
   run_command.cu <- function(cmnd) {
-    # browser()
-    if (!check_pw(cmnd$args)) {
+    if (!check_pw(cmnd$args)) { # if password is wrong, ignore the command
       return(list(add_to_ds = FALSE))
     }
-    # browser()
-    cu_ind_nr <- val_as_numeric(cmnd$args[[1]]) # chosen user's ind
-    if (!attr(cu_ind_nr, "ok")) return(list(add_to_ds = FALSE))
-    # browser()
+    chu_ind_nr <- val_as_numeric(cmnd$args[[1]]) # chosen user's ind
+    if (!attr(chu_ind_nr, "ok")) return(list(add_to_ds = FALSE)) # if c_ind=cmnd$args[[1]] is not numeric, ignore the command
     current_users_nr <- current_users()
-    if (cu_ind_nr != 0) { # if the user is not signing out
-      # browser()
-      if (current_users_nr %>% filter(u_ind == cu_ind_nr) %>% nrow() > 0) { # if someone has already signed in as cu_ind
-        # browser()
-        if (current_users_nr$u_gnm[current_users_nr$u_ind == cu_ind_nr] == cu_gnm) {
-          add_to_log_str(paste0('You  have already signed in as ', cu_ind_nr, '!'), 
+    if (chu_ind_nr != 0) { # if the user is not signing out
+      if (current_users_nr %>% filter(u_ind == chu_ind_nr) %>% nrow() > 0) { # if chosen user ind is already among current_users
+        if (current_users_nr$u_gnm[current_users_nr$u_ind == chu_ind_nr] == cu_gnm) {
+          # if user with a chosen user ind has the same current user's gnm
+          add_to_log_str(paste0('You  have already signed in as ', chu_ind_nr, '!'), 
                          'wrng')
-        } else {
-          add_to_log_str(paste0('Somebody has already signed in as user ', cu_ind_nr, '!'), 
+        } else { #  if someone has already signed in as chu_ind
+          add_to_log_str(paste0('Somebody has already signed in as user ', chu_ind_nr, '!'), 
                          'wrng')
         }
         return(list(add_to_ds = FALSE))
       }
     }
-    # browser()
-    if (cu_ind_nr == 1) { # if the user signing in as admin
+    if (chu_ind_nr == 1) { # if chosen user is an admin, add some ui
       insertUI(
         # multiple = TRUE,
         selector = '#firstRow',
@@ -364,15 +357,16 @@ function(input, output, session) {
                       actionButton('undo', 'Undo'),
                       actionButton('redo', 'Redo'))
       )
-    } else {
+    } else { # if the user signing in as not an admin, remove some ui
       removeUI(
         selector = '#admin_console'
       )
     }
-    current_users_nr$u_ind[current_users_nr$u_gnm == cu_gnm] <- cu_ind_nr
-    cu_ind(cu_ind_nr)
+    current_users_nr$u_ind[current_users_nr$u_gnm == cu_gnm] <- chu_ind_nr
+    # set [user with u_gnm == cu_gnm - current user]'s to chosen user' ind == cmnd$args[[1]]
+    cu_ind(chu_ind_nr) # switch cur user's ind to chosen user ind
     current_users(current_users_nr)
-    return(list(add_to_ds = FALSE))
+    return(list(add_to_ds = FALSE)) # this command does not yield a useful line in dataset
   }
   
   run_command.nc <- function(cmnd) {
