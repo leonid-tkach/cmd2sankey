@@ -188,7 +188,7 @@ function(input, output, session) {
     ))
   }
   
-  add_to_log_str <- function(str_to_add, cmd_wrng) {
+  add_to_log_str <- function(str_to_add, cmd_wrng = 'wrng') {
     # if command, print '>' first
     log_str(paste0(if_else(cmd_wrng == 'cmd', '> ', ''), 
                    str_to_add, '<br/>', 
@@ -461,8 +461,8 @@ function(input, output, session) {
     # browser()
     return(list(add_to_ds = TRUE,
                 nm = paste(cmnd$args[c(-1, -2)], collapse = ' '),
-                i1 = NA,
-                i2 = NA))
+                i1 = node1_i$cmd_i,
+                i2 = node2_i$cmd_i))
   }
   
 #-supporting run_command()======================================================
@@ -551,10 +551,11 @@ function(input, output, session) {
   }
   
   undo_command.nn <- function(cmnd) {
+    # browser()
     links2nn <- dataset() %>% # links to this node
-      filter(cmd == 'nl' && (i1 == cmnd$cmd_i || i1 == cmnd$cmd_i))
+      filter(cmd == 'nl' & (i1 == cmnd$cmd_i | i1 == cmnd$cmd_i))
     if (nrow(links2nn) > 0) {
-      add_to_log_str('There links to this node!')
+      add_to_log_str('There are links to this node!')
     } else {
       dataset(
         isolate(dataset() %>% # filter out the command
