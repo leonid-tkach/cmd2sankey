@@ -41,8 +41,8 @@ commands <- reactiveVal(tribble( # terminal commands & args
   'u', c(), # undo last command of current user
   'rn', c('cmd_i', '_nnm'), # new name
                             # arg with a name starting with '_' does not have its col in dataset
-  # here
-  'nn', c('nm', 'i1', '_tf') # new node named nm. i1 - 0: from_node, 1: to_node
+  'nn', c('nm'), # new node named nm
+  'nl', c('i1', 'i2', 'nm') # new link named nm from node cmd_i==i1 to node cmd_i==i2
 ))
 
 current_users <- reactiveVal(tibble( # used in session$onSessionEnded()
@@ -95,6 +95,16 @@ function(input, output, session) {
     reactable(dataset() %>% 
                 arrange(desc(cmd_i)) %>% # newest command first
                 select(-dt), # no date  column
+              defaultColDef = colDef(minWidth = 50)) # https://glin.github.io/reactable/articles/examples.html
+  })
+
+  output$nodes <- renderReactable({
+    reactable(snk_fig()$node,
+              defaultColDef = colDef(minWidth = 50)) # https://glin.github.io/reactable/articles/examples.html
+  })
+  
+  output$links <- renderReactable({
+    reactable(snk_fig()$link,
               defaultColDef = colDef(minWidth = 50)) # https://glin.github.io/reactable/articles/examples.html
   })
   
@@ -420,27 +430,22 @@ function(input, output, session) {
   }
   
   run_command.nn <- function(cmnd) { # add new node
-    # todo
-    from_node <- val_as_numeric(cmnd$args[[1]])
-    if (!attr(from_node, "ok")) return(list(add_to_ds = FALSE))
-    node_row <- row_by_cmd_i(rn_cmd_i, '', 
-                             '',
-                             cmd_a = 'nn')
-    if (!attr(the_cmd, "ok")) return(list(add_to_ds = FALSE))
-    
-    
-    # if () { 
-    #   return(list(add_to_ds = TRUE,
-    #               nm = paste(cmnd$args, collapse = ' '),
-    #               i1 = NA,
-    #               i2 = NA))
-    # } else {
-    #   add_to_log_str(paste0('Only user ',
-    #                         (dataset() %>% filter(cmd == 'nu'))$nm[[1]],
-    #                         ' can add new users!'), 
-    #                  'wrng')
-    #   return(list(add_to_ds = FALSE))
-    # }
+    return(list(add_to_ds = TRUE,
+                nm = paste(cmnd$args, collapse = ' '),
+                i1 = NA,
+                i2 = NA))
+  }
+  
+  run_command.nl <- function(cmnd) { # add new link
+    node1_i <- row_by_cmd_i(cmnd$args[1], 'There is no node with cmd_i=', '!')
+    if (!attr(node1_i, "ok")) return(FALSE)
+    node2_i <- row_by_cmd_i(cmnd$args[1], 'There is no node with cmd_i=', '!')
+    if (!attr(node2_i, "ok")) return(FALSE)
+    # browser()
+    return(list(add_to_ds = TRUE,
+                nm = paste(cmnd$args[c(-1, -2)], collapse = ' '),
+                i1 = NA,
+                i2 = NA))
   }
   
 #-supporting run_command()======================================================
@@ -527,11 +532,39 @@ function(input, output, session) {
                 filter(cmd_i != cmnd$cmd_i))
     )
   }
-
+  
+  undo_command.nn <- function(cmnd) {
+    links2nn <- dataset() %>% # links to this node
+      filter(cmd == 'nl' && (i1 == cmnd$cmd_i || i1 == cmnd$cmd_i))
+    if (nrow(links2nn) > 0) {
+      add_to_log_str('There links to this node!')
+    } else {
+      dataset(
+        isolate(dataset() %>% # filter out the command
+                  filter(cmd_i != cmnd$cmd_i))
+      )
+    }
+  }
+  
+  undo_command.nl <- function(cmnd) {
+    dataset(
+      isolate(dataset() %>% # filter out the command
+                filter(cmd_i != cmnd$cmd_i))
+    )
+  }
+  
 #-supporting undo_command()=====================================================
   
 #_supporting sankey=============================================================
-  
+
+  observeEvent(dataset(), {
+    snk_commands <- dataset() %>% 
+      filter(cmd == 'nn') %>% 
+      arrange(desc(cmd_i))
+    snk_fig_nr <- snk_fig()
+    snk_fig_nr$node <- tibble(label = snk_commands$nm)
+    snk_fig(snk_fig_nr)
+  })  
 
 #-supporting sankey=============================================================
   

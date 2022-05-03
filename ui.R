@@ -19,8 +19,11 @@ fluidPage(
                   fluidRow(downloadButton('dl_btn', 'Download'),
                            fileInput('ul_btn', NULL, accept = '.json', placeholder = 'Upload your dataset'))
                   ),
-           column(8, div("Dataset"), reactableOutput('dataset')),
-           column(2, div("current_users"), reactableOutput('current_users'))
+           column(7, div("Dataset"), reactableOutput('dataset')),
+           column(1, div("current_users"), reactableOutput('current_users')),
+           column(2,
+                  fluidRow(reactableOutput('nodes')),
+                  fluidRow(reactableOutput('links')))
     )
   )
 )
