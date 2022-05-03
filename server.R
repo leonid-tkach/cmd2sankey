@@ -576,11 +576,18 @@ function(input, output, session) {
 #_supporting sankey=============================================================
 
   observeEvent(dataset(), {
-    snk_commands <- dataset() %>% 
+    # todo: ...commands to snk...commands
+    node_commands <- dataset() %>% 
       filter(cmd == 'nn') %>% 
       arrange(desc(cmd_i))
+    link_commands <- dataset() %>% 
+      filter(cmd == 'nl') %>% 
+      arrange(desc(cmd_i))
     snk_fig_nr <- snk_fig()
-    snk_fig_nr$node <- tibble(label = snk_commands$nm)
+    snk_fig_nr$node <- tibble(label = node_commands$nm)
+    snk_fig_nr$link <- tibble(from = link_commands$i1,
+                               to = link_commands$i2,
+                               label = link_commands$nm)
     snk_fig(snk_fig_nr)
   })  
 
