@@ -195,35 +195,52 @@ function(input, output, session) {
                    log_str()))
   }
   
-  launch_undo <- function() {
+  launch_undo <- function(cmnd_vec) {
     # used in observeEvent(command(), {
-    cuser_rows <- isolate( # filter to current user's commands
-      dataset() %>% 
-        filter(u_i == cu_ind())
-    )
-    cuser_rows_num <- nrow(cuser_rows)
-    if (cuser_rows_num == 0) { # if there no current user's commands, log the fact
-      add_to_log_str(paste0('User ',
-                            (dataset() %>% filter(cmd_i == cu_ind()))$nm,
-                            ' does not have any commands to undo!'), 
-                     'wrng')
-      return()
+    if (length(cmnd_vec) == 1) { # 'no arguments' means 'undo last command of this user (cu_ind)'
+      cuser_rows <- isolate( # filter to current user's commands
+        dataset() %>% 
+          filter(u_i == cu_ind())
+      )
+      cuser_rows_num <- nrow(cuser_rows)
+      if (cuser_rows_num == 0) { # if there no current user's commands, log the fact
+        add_to_log_str(paste0('User ',
+                              (dataset() %>% filter(cmd_i == cu_ind()))$nm,
+                              ' does not have any commands to undo!'), 
+                       'wrng')
+        return()
+      }
+      cmd_to_del_row <- cuser_rows %>% # find last cu's command
+        arrange(cmd_i) %>% 
+        tail(1)
+    } else { # the only possible argument is cmd_i of the command to undo
+      cmd_to_del_i <- val_as_numeric(cmnd_vec[2]) # check if provided cmd_i is numeric
+      if (!attr(cmd_to_del_i, "ok")) return()
+      cmd_to_del_row <- row_by_cmd_i(cmd_to_del_i,
+                                     'There is no command with cmd_i=',
+                                     ' you are trying to undo!')
+      if (!attr(cmd_to_del_row, "ok")) return() # if there is no such cmd_i
+      # browser()
+      if (cmd_to_del_row$u_i != as.numeric(cu_ind())) {
+        add_to_log_str(paste0('Only user ', 
+                              (dataset() %>% filter(cmd_i == cmd_to_del_row$u_i))$nm,
+                              ' may undo this command!'), 
+                       'wrng')
+        return()
+      }
     }
-    cuser_last_cmd_row <- cuser_rows %>% # find last cu's command
-      arrange(cmd_i) %>% 
-      tail(1)
-    cmnd <- structure(class = cuser_last_cmd_row$cmd[[1]], # make a cmnd-structure of it
-                      list(cmd_i = cuser_last_cmd_row$cmd_i[[1]]))
+    cmnd <- structure(class = cmd_to_del_row$cmd[[1]], # make a cmnd-structure of it
+                      list(cmd_i = cmd_to_del_row$cmd_i[[1]]))
     undo_command(cmnd) # opposite to run_command (there is one for every command too)
   }
 
   launch_rename <- function(cmnd_vec) {
     # used in observeEvent(command(), {
-    rn_cmd_i <- val_as_numeric(cmnd_vec[[2]]) # check if ptovided cmd_i is numeric
+    rn_cmd_i <- val_as_numeric(cmnd_vec[[2]]) # check if provided cmd_i is numeric
     if (!attr(rn_cmd_i, "ok")) return()
     
     the_cmd <- row_by_cmd_i(rn_cmd_i, 'There is no element with cmd_i=', ' you are trying to rename!')
-    if (!attr(the_cmd, "ok")) return() # if tere is no such cmd_i
+    if (!attr(the_cmd, "ok")) return() # if there is no such cmd_i
     
     # only command's author can rename it
     # if it is the very first command, it's u_i is 0 (not 1), because it is the very first user added themselves
@@ -281,7 +298,7 @@ function(input, output, session) {
     }
     # commands not launched by run_command()
     if (cmnd_vec[1] == 'u') {
-      launch_undo()
+      launch_undo(cmnd_vec)
       return()
     }
     if (cmnd_vec[1] == 'rn') {
@@ -439,7 +456,7 @@ function(input, output, session) {
   run_command.nl <- function(cmnd) { # add new link
     node1_i <- row_by_cmd_i(cmnd$args[1], 'There is no node with cmd_i=', '!')
     if (!attr(node1_i, "ok")) return(FALSE)
-    node2_i <- row_by_cmd_i(cmnd$args[1], 'There is no node with cmd_i=', '!')
+    node2_i <- row_by_cmd_i(cmnd$args[2], 'There is no node with cmd_i=', '!')
     if (!attr(node2_i, "ok")) return(FALSE)
     # browser()
     return(list(add_to_ds = TRUE,
