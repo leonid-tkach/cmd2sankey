@@ -31,6 +31,8 @@ fig <- reactiveVal(list( # in the middle between dataset() and snk_fig()
                 target = numeric(),
                 value = numeric())))
 
+snk_fig <- reactiveVal()
+
 commands <- reactiveVal(tribble( # terminal commands & args
   ~cmd, ~args,
   'nu', c('nm'), # new user
@@ -106,6 +108,16 @@ function(input, output, session) {
   
   output$links <- renderReactable({
     reactable(fig()$link,
+              defaultColDef = colDef(minWidth = 50)) # https://glin.github.io/reactable/articles/examples.html
+  })
+  
+  output$snk_nodes <- renderReactable({
+    reactable(snk_fig()$node,
+              defaultColDef = colDef(minWidth = 50)) # https://glin.github.io/reactable/articles/examples.html
+  })
+  
+  output$snk_links <- renderReactable({
+    reactable(snk_fig()$link,
               defaultColDef = colDef(minWidth = 50)) # https://glin.github.io/reactable/articles/examples.html
   })
   
@@ -587,13 +599,33 @@ function(input, output, session) {
     fig_nr$node <- tibble(id = node_commands$cmd_i,
                           label = node_commands$nm,
                           color = rep(NA, length(node_commands$cmd_i)))
-    fig_nr$link <- tibble(from = link_commands$i1,
-                          to = link_commands$i2,
+    fig_nr$link <- tibble(source = link_commands$i1,
+                          target = link_commands$i2,
                           label = link_commands$nm)
     fig(fig_nr)
   })  
 
-#-supporting sankey=============================================================
+  observeEvent(fig(), { # change "raw" node indexes from dataset() to positions for sankey
+    if (nrow(fig()$node) > 0) {
+      ind_pos <- tibble(ind = fig()$node$id,
+                        pos = seq(from = 0, to = length(fig()$node$id) - 1))
+      snk_fig_nr <- fig()
+      snk_fig_nr$node <- snk_fig_nr$node %>% 
+        select(-id)
+      if (nrow(fig()$link) > 0) {
+        source_ind <- fig()$link$source
+        target_ind <- fig()$link$target
+        snk_fig_nr$link <- tibble(source = ind_pos$pos[ind_pos$ind == source_ind],
+                                  target = ind_pos$pos[ind_pos$ind == target_ind],
+                                  label = fig()$link$label)
+      }
+      snk_fig(snk_fig_nr)
+    } else {
+      snk_fig(fig())
+    }
+  })  
+  
+  #-supporting sankey=============================================================
   
   
 }

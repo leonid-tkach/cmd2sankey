@@ -23,7 +23,9 @@ fluidPage(
            column(1, div("current_users"), reactableOutput('current_users')),
            column(2,
                   fluidRow(reactableOutput('nodes')),
-                  fluidRow(reactableOutput('links')))
+                  fluidRow(reactableOutput('links')),
+                  fluidRow(reactableOutput('snk_nodes')),
+                  fluidRow(reactableOutput('snk_links')))
     )
   )
 )
