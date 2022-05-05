@@ -4,6 +4,7 @@ library(reactable)
 library(keys)
 library(jsonlite)
 library(lubridate)
+library(plotly)
 
 
 fluidPage(
@@ -26,6 +27,7 @@ fluidPage(
                   fluidRow(reactableOutput('links')),
                   fluidRow(reactableOutput('snk_nodes')),
                   fluidRow(reactableOutput('snk_links')))
-    )
+    ),
+    column(3, plotlyOutput("snk_plot"))
   )
 )

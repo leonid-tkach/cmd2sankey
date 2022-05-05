@@ -112,11 +112,13 @@ function(input, output, session) {
   })
   
   output$snk_nodes <- renderReactable({
+    # browser()
     reactable(snk_fig()$node,
               defaultColDef = colDef(minWidth = 50)) # https://glin.github.io/reactable/articles/examples.html
   })
   
   output$snk_links <- renderReactable({
+    # browser()
     reactable(snk_fig()$link,
               defaultColDef = colDef(minWidth = 50)) # https://glin.github.io/reactable/articles/examples.html
   })
@@ -136,6 +138,34 @@ function(input, output, session) {
                     input$run), { # read command if actbtn 'run' pressed
     # browser()
     command(input$tmnl) # change command to string in terminal
+  })
+  
+  output$snk_plot <- renderPlotly({
+    node <- list(label = snk_fig()$node$label,
+                 color = rep('blue', length(snk_fig()$node$label)),
+                 pad = 15,
+                 thickness = 20,
+                 line = list(
+                   color = "black",
+                   width = 0.5))
+    link <- list(source = snk_fig()$link$source,
+                 target = snk_fig()$link$target,
+                 value = rep(1, length(snk_fig()$link$source)))
+    fig <- plot_ly(
+      source = 'nl_sankey_src',
+      type = 'sankey',
+      arrangement = 'fixed',
+      orientation = 'h',
+      node = node,
+      link = link
+    )
+    
+    fig <- fig %>% layout(
+      font = list(
+        size = 12
+      )
+    )
+    
   })
   
 #-supporting ui=================================================================
@@ -615,13 +645,18 @@ function(input, output, session) {
       if (nrow(fig()$link) > 0) {
         source_ind <- fig()$link$source
         target_ind <- fig()$link$target
-        snk_fig_nr$link <- tibble(source = ind_pos$pos[ind_pos$ind == source_ind],
-                                  target = ind_pos$pos[ind_pos$ind == target_ind],
+        # browser()
+        snk_fig_nr$link <- tibble(source = source_ind %>% 
+                                    map(~ind_pos$pos[ind_pos$ind == .]) %>% 
+                                    unlist(),
+                                  target = target_ind %>% 
+                                    map(~ind_pos$pos[ind_pos$ind == .]) %>% 
+                                    unlist(),
                                   label = fig()$link$label)
       }
       snk_fig(snk_fig_nr)
     } else {
-      snk_fig(fig())
+      snk_fig(snk_fig())
     }
   })  
   
