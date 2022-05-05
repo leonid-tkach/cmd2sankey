@@ -23,8 +23,9 @@ rm(cur_cmd_i_nr)
 # 
 # cur_cmd_i <- reactiveVal(0)
 
-snk_fig <- reactiveVal(list( # not used yet
-  node = tibble(label = character(),
+fig <- reactiveVal(list( # in the middle between dataset() and snk_fig()
+  node = tibble(id = character(),
+                label = character(),
                 color = character()),
   link = tibble(source = numeric(),
                 target = numeric(),
@@ -99,12 +100,12 @@ function(input, output, session) {
   })
 
   output$nodes <- renderReactable({
-    reactable(snk_fig()$node,
+    reactable(fig()$node,
               defaultColDef = colDef(minWidth = 50)) # https://glin.github.io/reactable/articles/examples.html
   })
   
   output$links <- renderReactable({
-    reactable(snk_fig()$link,
+    reactable(fig()$link,
               defaultColDef = colDef(minWidth = 50)) # https://glin.github.io/reactable/articles/examples.html
   })
   
@@ -575,20 +576,21 @@ function(input, output, session) {
   
 #_supporting sankey=============================================================
 
-  observeEvent(dataset(), {
-    # todo: ...commands to snk...commands
+  observeEvent(dataset(), { # extract "raw"  nodes and links from dataset()
     node_commands <- dataset() %>% 
       filter(cmd == 'nn') %>% 
       arrange(desc(cmd_i))
     link_commands <- dataset() %>% 
       filter(cmd == 'nl') %>% 
       arrange(desc(cmd_i))
-    snk_fig_nr <- snk_fig()
-    snk_fig_nr$node <- tibble(label = node_commands$nm)
-    snk_fig_nr$link <- tibble(from = link_commands$i1,
-                               to = link_commands$i2,
-                               label = link_commands$nm)
-    snk_fig(snk_fig_nr)
+    fig_nr <- fig()
+    fig_nr$node <- tibble(id = node_commands$cmd_i,
+                          label = node_commands$nm,
+                          color = rep(NA, length(node_commands$cmd_i)))
+    fig_nr$link <- tibble(from = link_commands$i1,
+                          to = link_commands$i2,
+                          label = link_commands$nm)
+    fig(fig_nr)
   })  
 
 #-supporting sankey=============================================================
