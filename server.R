@@ -141,16 +141,19 @@ function(input, output, session) {
   })
   
   output$snk_plot <- renderPlotly({
-    node <- list(label = snk_fig()$node$label,
-                 color = rep('blue', length(snk_fig()$node$label)),
-                 pad = 15,
-                 thickness = 20,
-                 line = list(
-                   color = "black",
-                   width = 0.5))
-    link <- list(source = snk_fig()$link$source,
-                 target = snk_fig()$link$target,
-                 value = rep(1, length(snk_fig()$link$source)))
+    node <- c(list(label = snk_fig()$node$label,
+                   color = rep('blue', length(snk_fig()$node$label)),
+                   pad = 15,
+                   thickness = 20,
+                   line = list(
+                     color = "black",
+                     width = 0.5)), 
+              hoverinfo = 'none')
+    link <- c(list(source = snk_fig()$link$source,
+                   target = snk_fig()$link$target,
+                   label = snk_fig()$link$label,
+                   value = rep(1, length(snk_fig()$link$source))), 
+              hoverinfo = 'none')
     fig <- plot_ly(
       source = 'nl_sankey_src',
       type = 'sankey',
