@@ -1,14 +1,12 @@
 #_global variables==============================================================
 
 load('dataset.RData') # load dataset_nr, cur_cmd_i_nr
-
 dataset <- reactiveVal(dataset_nr)
 cur_cmd_i <- reactiveVal(cur_cmd_i_nr)
-
 rm(dataset_nr)
 rm(cur_cmd_i_nr)
 
-# dataset <- reactiveVal(tibble(
+# dataset <- reactiveVal(tibble( # dataset from scratch
 #   cmd_i = numeric(), # command index (user runs commands one by one)
 #   cmd = character(), # command name
 #   u_i = numeric(), # current user who run the command
@@ -20,7 +18,6 @@ rm(cur_cmd_i_nr)
 #   d = numeric(),
 #   t = character()
 # ))
-# 
 # cur_cmd_i <- reactiveVal(0)
 
 fig <- reactiveVal(list( # in the middle between dataset() and snk_fig()
@@ -113,13 +110,15 @@ function(input, output, session) {
   
   output$snk_nodes <- renderReactable({
     # browser()
-    reactable(snk_fig()$node,
-              defaultColDef = colDef(minWidth = 50)) # https://glin.github.io/reactable/articles/examples.html
+    if (!is_null(snk_fig()$node))
+      reactable(snk_fig()$node,
+                defaultColDef = colDef(minWidth = 50)) # https://glin.github.io/reactable/articles/examples.html
   })
   
   output$snk_links <- renderReactable({
     # browser()
-    reactable(snk_fig()$link,
+    if (!is_null(snk_fig()$link))
+      reactable(snk_fig()$link,
               defaultColDef = colDef(minWidth = 50)) # https://glin.github.io/reactable/articles/examples.html
   })
   
