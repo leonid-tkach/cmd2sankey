@@ -1,14 +1,18 @@
 # cmd2sankey
 
-## Terminal %>% Graphical User Interface
+The app is deployed on shinyapps.io: https://leonid-tkach.shinyapps.io/cmd2sankey/
+
+## Terminal vs Graphical User Interface
 
 Historically graphical user interface (GUI) stems from terminal. 
 
 I emulate terminal enabling users to build sankey diagram with short commands. That’s why this app is called cmd2sankey.
 
+I am going to develop optimal GUI later based on the terminal experience. **I believe that optimal set of terminal commands is able to translate into optimal GUI.**
+
 ## S3 is ideal for programming terminal
 
-S# is the earliset one of R's OO paradigms. I implement all terminal commands and undo-commands to them with generic methods.
+S3 is the earliest of R's OO paradigms. I implement all terminal commands and undo-commands to them with generic methods:
 
 ```{r}
 run_command <- function(cmnd) { # S3
@@ -22,6 +26,8 @@ run_command.nu <- function(cmnd) {
 run_command.cu <- function(cmnd) {
   # choose user = login
 }
+
+# and so on
 
 undo_command <- function(cmnd) { # S3
   UseMethod("undo_command")
@@ -39,7 +45,17 @@ undo_command.nu <- function(cmnd) {
 
 ## Manual
 
-**First off all; before pressing "Enter" user should wait for a little bit. If given too little time, the "terminal" may lose you command's last argument/arguments**
+**Important: before pressing "Enter" a user should wait for a little bit.** If given too little time, the "terminal" may lose your command's last argument/arguments.
+
+
+Examples of commands:
+
+```
+> cu 1 leo
+> nn node4
+> nl 4 9 link3
+> nl 9 5 link4
+```
 
 Here is a snippet of code as a manual:
 

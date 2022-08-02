@@ -5,10 +5,10 @@ account: leonid-tkach
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 6720621
-bundleId: 6151283
+bundleId: 6159352
 url: https://leonid-tkach.shinyapps.io/cmd2sankey/
-when: 1659304807.49434
-lastSyncTime: 1659304807.49434
+when: 1659474559.80833
+lastSyncTime: 1659474559.80834
 asMultiple: FALSE
 asStatic: FALSE
-ignoredFiles: here 2022-5-11.png|run.R
+ignoredFiles: here 2022-5-11.png|README.html|README.md|run.R
