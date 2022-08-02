@@ -33,12 +33,12 @@ snk_fig <- reactiveVal()
 commands <- reactiveVal(tribble( # terminal commands & args
   ~cmd, ~args,
   'nu', c('nm'), # new user
-  'cu', c('i1', '_pw'), # choose user (i1 is user's indicator in dataset and current_users, one by one
+  'cu', c('i1', '_pw'), # choose user (i1 is nu-command's cmd_i in the dataset
                         # arg with a name starting with '_' does not have its col in dataset
   'nc', c('nm'), # new country
   'ns', c('nm'), # new state
   'uc', c('i1'), # user's country; i1 is county indicator in dataset, one by one
-  'u', c(), # undo last command of current user
+  'u', c(), # undo last command of the current user
   'rn', c('cmd_i', '_nnm'), # new name
                             # arg with a name starting with '_' does not have its col in dataset
   'nn', c('nm'), # new node named nm
@@ -218,7 +218,7 @@ function(input, output, session) {
     if (c_a[[2]] == substr(nm, 1, 3)) {
       return(TRUE)
     } else {
-      add_to_log_str(paste0('Wrong!'), 'wrng')
+      add_to_log_str(paste0('Wrong password!'), 'wrng')
       return(FALSE)
     }
   }
@@ -399,7 +399,7 @@ function(input, output, session) {
     }
   }
   
-  run_command.cu <- function(cmnd) {
+  run_command.cu <- function(cmnd) { # choose user
     if (!check_pw(cmnd$args)) { # if password is wrong, ignore the command
       return(list(add_to_ds = FALSE))
     }
@@ -420,18 +420,18 @@ function(input, output, session) {
       }
     }
     if (chu_ind_nr == 1) { # if chosen user is an admin, add some ui
-      insertUI(
-        # multiple = TRUE,
-        selector = '#firstRow',
-        where = 'beforeBegin',
-        ui = fluidRow(id = 'admin_console', 
-                      actionButton('undo', 'Undo'),
-                      actionButton('redo', 'Redo'))
-      )
+      # insertUI(
+        # # multiple = TRUE,
+        # selector = '#firstRow',
+        # where = 'beforeBegin',
+        # ui = fluidRow(id = 'admin_console', 
+        #               actionButton('undo', 'Undo'),
+        #               actionButton('redo', 'Redo'))
+      # )
     } else { # if the user signing in as not an admin, remove some ui
-      removeUI(
-        selector = '#admin_console'
-      )
+      # removeUI(
+      #   selector = '#admin_console'
+      # )
     }
     current_users_nr$u_ind[current_users_nr$u_gnm == cu_gnm] <- chu_ind_nr
     # set [user with u_gnm == cu_gnm - current user]'s to chosen user' ind == cmnd$args[[1]]
