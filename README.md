@@ -1,5 +1,7 @@
 # cmd2sankey
 
+It's a demo of R S3 paradigm for pre-GUI terminal.
+
 The app is deployed on shinyapps.io: https://leonid-tkach.shinyapps.io/cmd2sankey/
 
 ## Terminal vs Graphical User Interface
